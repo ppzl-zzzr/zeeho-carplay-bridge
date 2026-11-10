@@ -37,6 +37,8 @@ targets:
           - SairaSemiCondensed-SemiBold.ttf
           - Rajdhani-Medium.ttf
           - Rajdhani-SemiBold.ttf
+          - Barlow-ExtraBoldItalic.ttf
+          - Barlow-SemiBoldItalic.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zeeho.bridge

@@ -26,6 +26,18 @@ enum DashFont: Int, CaseIterable {
 
     static var current: DashFont { DashFont(rawValue: UserDefaults.standard.integer(forKey: "dashFont")) ?? .barlow }
 
+    /// 车速大数字：Barlow 用超粗斜体
+    func display(_ size: CGFloat) -> UIFont {
+        if self == .barlow, let f = UIFont(name: "Barlow-ExtraBoldItalic", size: size) { return f }
+        return font(size)
+    }
+
+    /// 次要数字（电量、行程）：Barlow 用粗斜体
+    func italic(_ size: CGFloat) -> UIFont {
+        if self == .barlow, let f = UIFont(name: "Barlow-SemiBoldItalic", size: size) { return f }
+        return font(size)
+    }
+
     func font(_ size: CGFloat, bold: Bool = true) -> UIFont {
         let s = size * scale
         return UIFont(name: "\(family)-\(bold ? "SemiBold" : "Medium")", size: s)
@@ -91,21 +103,12 @@ final class DashRenderer {
         let v = VehicleStore.shared.snapshot()
         var rx = w - 40 * k
         rx -= text(v.rangeKm.map { "\($0) km" } ?? "-- km", CGPoint(x: rx, y: top), .right, F.font(15 * k, bold: false), text2) + 14 * k
-        rx -= text(v.soc.map { "\($0)%" } ?? "--%", CGPoint(x: rx, y: top), .right, F.font(15 * k), .white) + 8 * k
+        rx -= text(v.soc.map { "\($0)%" } ?? "--%", CGPoint(x: rx, y: top), .right, F.italic(16 * k), .white) + 8 * k
         battery(ctx, CGRect(x: rx - 26 * k, y: top - 6 * k, width: 26 * k, height: 12 * k), soc: v.soc, charging: v.charging, k: k)
 
-        // 悬浮车速
-        let spd = LocationService.shared.speedKmh
-        ctx.saveGState()
-        ctx.setShadow(offset: CGSize(width: 0, height: 10 * k), blur: 34 * k, color: rgba(0, 0, 0, 0.7))
-        text(spd.map { String(Int($0.rounded())) } ?? "--", CGPoint(x: 34 * k, y: 168 * k), .left, F.font(168 * k), .white, kern: -4 * k)
-        ctx.restoreGState()
-        text("KM/H", CGPoint(x: 42 * k, y: 262 * k), .left, F.font(17 * k, bold: false), text2, kern: 4 * k)
-        let tagY = 296 * k
-        (spd != nil ? accent : UIColor(white: 1, alpha: 0.3)).setFill()
-        UIBezierPath(roundedRect: CGRect(x: 42 * k, y: tagY - 1.5 * k, width: 26 * k, height: 3 * k), cornerRadius: 1.5 * k).fill()
-        text(spd != nil ? "GPS" : "等待 GPS", CGPoint(x: 76 * k, y: tagY), .left, F.font(13 * k),
-             spd != nil ? accent : UIColor(white: 1, alpha: 0.35), kern: 1 * k)
+        // 车速：速度弧线 + 超粗斜体数字
+        speedGauge(ctx, center: CGPoint(x: 165 * k, y: 226 * k), radius: 118 * k, k: k, font: F,
+                   speed: LocationService.shared.speedKmh)
 
         // 左下：本次行程
         let t = LocationService.shared.trip
@@ -115,7 +118,7 @@ final class DashRenderer {
                                ("时长", String(format: "%02d:%02d", Int(t.seconds) / 3600, Int(t.seconds) / 60 % 60)),
                                ("最高", String(Int(t.maxKmh.rounded())))] {
             tx += text(label, CGPoint(x: tx, y: by), .left, .systemFont(ofSize: 13 * k), text2) + 6 * k
-            tx += text(value, CGPoint(x: tx, y: by), .left, F.font(17 * k), .white) + 22 * k
+            tx += text(value, CGPoint(x: tx, y: by), .left, F.italic(18 * k), .white) + 22 * k
         }
 
         // 右侧：大号媒体卡
@@ -249,6 +252,69 @@ final class DashRenderer {
     }
 
     // MARK: - 小部件
+
+    /// 270° 速度弧：底部开口，青→紫渐变 + 发光；满刻度 120 km/h
+    private func speedGauge(_ ctx: CGContext, center c: CGPoint, radius r: CGFloat, k: CGFloat, font F: DashFont, speed: Double?) {
+        let maxKmh = 120.0
+        let start = CGFloat.pi * 0.75, sweep = CGFloat.pi * 1.5
+        let frac = CGFloat(min(max((speed ?? 0) / maxKmh, 0), 1))
+        let lw = 10 * k
+
+        // 底部压暗，让弧线和数字从地图上浮出来
+        radial(ctx, [rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0)], [0, 1], c, r * 1.35)
+
+        let track = UIBezierPath(arcCenter: c, radius: r, startAngle: start, endAngle: start + sweep, clockwise: true)
+        track.lineWidth = lw; track.lineCapStyle = .round
+        UIColor(white: 1, alpha: 0.08).setStroke(); track.stroke()
+
+        // 刻度点
+        for i in 0...12 {
+            let a = start + sweep * CGFloat(i) / 12
+            let p = CGPoint(x: c.x + cos(a) * (r - 18 * k), y: c.y + sin(a) * (r - 18 * k))
+            UIColor(white: 1, alpha: i % 3 == 0 ? 0.35 : 0.14).setFill()
+            let d = (i % 3 == 0 ? 3.2 : 2.2) * k
+            UIBezierPath(ovalIn: CGRect(x: p.x - d / 2, y: p.y - d / 2, width: d, height: d)).fill()
+        }
+
+        if frac > 0.002 {
+            let arc = UIBezierPath(arcCenter: c, radius: r, startAngle: start, endAngle: start + sweep * frac, clockwise: true)
+            // 发光层
+            ctx.saveGState()
+            ctx.setShadow(offset: .zero, blur: 18 * k, color: accent.withAlphaComponent(0.8).cgColor)
+            arc.lineWidth = lw; arc.lineCapStyle = .round
+            accent.withAlphaComponent(0.6).setStroke(); arc.stroke()
+            ctx.restoreGState()
+            // 渐变层：把弧线描边当作裁剪区，再铺横向渐变
+            ctx.saveGState()
+            ctx.addPath(arc.cgPath)
+            ctx.setLineWidth(lw); ctx.setLineCap(.round)
+            ctx.replacePathWithStrokedPath()
+            ctx.clip()
+            linear(ctx, [accent.cgColor, rgba(155, 123, 255, 1)], [0, 1],
+                   CGPoint(x: c.x - r, y: c.y), CGPoint(x: c.x + r, y: c.y))
+            ctx.restoreGState()
+            // 弧线端点亮点
+            let ea = start + sweep * frac
+            let ep = CGPoint(x: c.x + cos(ea) * r, y: c.y + sin(ea) * r)
+            UIColor.white.setFill()
+            UIBezierPath(ovalIn: CGRect(x: ep.x - 4 * k, y: ep.y - 4 * k, width: 8 * k, height: 8 * k)).fill()
+        }
+
+        let ly = c.y + sin(start) * r + 22 * k
+        text("0", CGPoint(x: c.x + cos(start) * r, y: ly), .center, F.font(12 * k), UIColor(white: 1, alpha: 0.35))
+        text("\(Int(maxKmh))", CGPoint(x: c.x - cos(start) * r, y: ly), .center, F.font(12 * k), UIColor(white: 1, alpha: 0.35))
+
+        // 数字
+        ctx.saveGState()
+        ctx.setShadow(offset: CGSize(width: 0, height: 8 * k), blur: 26 * k, color: rgba(0, 0, 0, 0.7))
+        text(speed.map { String(Int($0.rounded())) } ?? "--", CGPoint(x: c.x + 4 * k, y: c.y - 6 * k), .center,
+             F.display(118 * k), .white, kern: -3 * k)
+        ctx.restoreGState()
+        text("KM/H", CGPoint(x: c.x + 2 * k, y: c.y + 58 * k), .center, F.font(15 * k), text2, kern: 4 * k)
+        let gps = speed != nil
+        text(gps ? "GPS" : "等待 GPS", CGPoint(x: c.x, y: c.y + 96 * k), .center, F.font(12 * k),
+             gps ? accent : UIColor(white: 1, alpha: 0.35), kern: 2 * k)
+    }
 
     private func puck(_ ctx: CGContext, _ pc: CGPoint, k: CGFloat) {
         radial(ctx, [accent.withAlphaComponent(0.35).cgColor, accent.withAlphaComponent(0).cgColor], [0, 1], pc, 66 * k)

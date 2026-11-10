@@ -54,6 +54,9 @@
 - [x] 演示模式 Demo.swift（-demo 启动参数：假车速/电量/播放/歌词，导出 2048×960 PNG）+ Codemagic 工作流 ios-screenshot（模拟器运行导出截图）
   - 触发脚本：python -I ~/.zeeho-bridge/cmrun.py <workflowId> <输出目录>（ios-unsigned 出 IPA，ios-screenshot 出截图）；push 不会自动触发，需用 API
   - 第一轮截图：渲染正常，但导出时地图未就绪（黑底）；手机预览里 MapKit 暗色 3D 地图已正常（模拟器英文路名）→ 已改为等地图就绪再导出，正在重跑
+  - 第三轮截图（commit 隐藏 POI/加强模糊羽化/中文 locale）效果良好，已用 SendUserFile 发给用户三套字体截图（dist/shots/ios/shots/）；等用户选字体和反馈
+  - 已用最新代码重编 IPA（724KB）→ dist/ZeehoBridge-unsigned.ipa
+  - 用户选定字体 A Barlow（本来就是默认值 0，无需改代码）；下一步等用户装机实测（MediaRemote 能否读到酷狗等、实车投屏）
 
 ## 用户最新界面要求（15:03 恢复后编译跑通再做）
 1. 字体太丑要换：车速改 DIN Alternate Bold / DIN Condensed（iOS 自带），不用 ultraLight；中文 PingFang SC；先在 mockup 里出 2~3 个字体方案给用户选
