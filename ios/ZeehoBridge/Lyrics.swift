@@ -23,8 +23,8 @@ final class Lyrics {
     }()
 
     func snapshot() -> (lines: [LyricLine], state: String) {
-        lock.lock(); defer { lock.unlock() }
-        return (lines, state)
+        if Demo.on { return (Demo.lyrics, "") }
+        return lock.withLock { (lines, state) }
     }
 
     func load(title: String, artist: String, duration: Double, log: @escaping (String) -> Void) {
@@ -38,12 +38,12 @@ final class Lyrics {
             var found = await self.lrclib(title: title, artist: artist, duration: duration)
             var from = "LRCLIB"
             if found.isEmpty { found = await self.netease(title: title, artist: artist); from = "网易云" }
-            self.lock.lock()
-            if self.key == k {
-                self.lines = found
-                self.state = found.isEmpty ? "暂无歌词" : ""
+            self.lock.withLock {
+                if self.key == k {
+                    self.lines = found
+                    self.state = found.isEmpty ? "暂无歌词" : ""
+                }
             }
-            self.lock.unlock()
             log(found.isEmpty ? "[歌词] 没找到「\(title)」的歌词" : "[歌词] 已从\(from)获取 \(found.count) 行")
         }
     }

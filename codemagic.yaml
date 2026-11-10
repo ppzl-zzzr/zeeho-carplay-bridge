@@ -34,3 +34,44 @@ workflows:
     artifacts:
       - ios/ZeehoBridge-unsigned.ipa
       - ios/build.log
+
+  ios-screenshot:
+    name: 模拟器截图（演示数据）
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: latest
+    scripts:
+      - name: 生成 Xcode 工程
+        script: brew install xcodegen && cd ios && xcodegen generate
+      - name: 编译模拟器版
+        script: |
+          cd ios
+          set -o pipefail
+          xcodebuild -project ZeehoBridge.xcodeproj -target ZeehoBridge -configuration Debug -sdk iphonesimulator \
+            SYMROOT="$PWD/build" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee sim.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+      - name: 运行并导出仪表截图
+        script: |
+          cd ios
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import sys,json; d=json.load(sys.stdin)['devices']; print([x['udid'] for k,v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')][-1])")
+          echo "simulator $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" build/Debug-iphonesimulator/ZeehoBridge.app
+          xcrun simctl privacy "$UDID" grant location-always com.zeeho.bridge || true
+          xcrun simctl privacy "$UDID" grant media-library com.zeeho.bridge || true
+          xcrun simctl location "$UDID" set 30.2590,120.1650 || true
+          xcrun simctl launch "$UDID" com.zeeho.bridge -demo
+          C=""
+          for i in $(seq 1 40); do
+            C=$(xcrun simctl get_app_container "$UDID" com.zeeho.bridge data)
+            [ -f "$C/Documents/export-done.txt" ] && break
+            sleep 3
+          done
+          mkdir -p shots
+          cp "$C"/Documents/dash-*.png shots/ || true
+          xcrun simctl io "$UDID" screenshot shots/phone.png || true
+          ls -la shots
+    artifacts:
+      - ios/shots/*.png
+      - ios/sim.log

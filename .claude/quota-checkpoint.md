@@ -46,6 +46,12 @@
 - App 实现方向：高德 iOS 地图 SDK（MAMapView 自定义暗色样式 + 3D 俯仰 cameraDegree）离屏截图作底图，或 MapKit 暗色 3D（无需 key）先顶上；悬浮层用 CoreGraphics 画
 - 下一步要把 Video.swift 的 DashRenderer 改成这个布局
 
+## 15:03 恢复后进展
+- [x] 首次 Codemagic 编译成功（746c16d），IPA 在 dist/ZeehoBridge-unsigned.ipa（dist/ 已 gitignore）
+- [x] mockup v4：三套字体 + 大号媒体卡/歌词
+- [x] 代码：Fonts/（Barlow/Saira/Rajdhani，OFL）+ UIAppFonts；NowPlaying.swift（MediaRemote dlopen + Apple Music 兜底 + CoverTint）；Lyrics.swift（LRCLIB → 网易云）；DashRenderer 重写（DashFont 可切换、行程栏、大号媒体卡：模糊地图+封面染色+羽化遮罩+歌词滚动）；MapBackdrop 增加模糊版；LocationService 增加 trip；App 字体切换
+- [ ] 第二次编译进行中（cmwait.py 在 ~/.zeeho-bridge，用法：python -I ~/.zeeho-bridge/cmwait.py <sha> dist）
+
 ## 用户最新界面要求（15:03 恢复后编译跑通再做）
 1. 字体太丑要换：车速改 DIN Alternate Bold / DIN Condensed（iOS 自带），不用 ultraLight；中文 PingFang SC；先在 mockup 里出 2~3 个字体方案给用户选
 2. 骑行模式 ECO/STREET/SPORT 是效果图里的假数据，App 里已去掉；如要显示需找数据源（云端车况接口/仪表协议都未见当前档位字段），已如实告知用户

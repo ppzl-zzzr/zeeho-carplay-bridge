@@ -40,7 +40,10 @@ final class NowPlaying {
     private var mrReported = false
     private var log: (String) -> Void = { _ in }
 
-    var current: NowPlayingInfo? { lock.lock(); defer { lock.unlock() }; return info }
+    var current: NowPlayingInfo? {
+        if Demo.on { return Demo.nowPlaying }
+        lock.lock(); defer { lock.unlock() }; return info
+    }
 
     func start(log: @escaping (String) -> Void) {
         guard !started else { return }

@@ -159,6 +159,9 @@ struct DashboardView: View {
             .onAppear {
                 LocationService.shared.start()
                 NowPlaying.shared.start(log: model.log)
+                if Demo.on {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 15) { Demo.export(log: model.log) }
+                }
             }
         }
     }

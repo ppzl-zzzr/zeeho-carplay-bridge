@@ -19,7 +19,10 @@ final class VehicleStore: ObservableObject {
     private var snap = Snapshot()
 
     /// 渲染线程用
-    func snapshot() -> Snapshot { lock.lock(); defer { lock.unlock() }; return snap }
+    func snapshot() -> Snapshot {
+        if Demo.on { return Snapshot(soc: 68, rangeKm: 30, charging: false, voltage: 82.8, updatedAt: Date()) }
+        lock.lock(); defer { lock.unlock() }; return snap
+    }
 
     /// 面板每收到一个极核接口响应就会转过来；只认电量相关字段（字段名来自项目的 mock.json）。
     func ingest(url: String, body: String) {
