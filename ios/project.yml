@@ -34,6 +34,8 @@ targets:
           - UIInterfaceOrientationPortrait
         UIBackgroundModes:
           - location
+          - audio
+        AMapApiKey: $(AMAP_IOS_KEY)
         NSLocalNetworkUsageDescription: 需要访问本地网络，才能和极核仪表建立投屏连接。
         NSLocationWhenInUseUsageDescription: 用 GPS 计算车速并显示在仪表上，也用于识别当前连接的仪表热点。
         NSLocationAlwaysAndWhenInUseUsageDescription: 锁屏后继续用 GPS 计算车速，并让投屏在后台继续运行。

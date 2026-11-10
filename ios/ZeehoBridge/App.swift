@@ -123,6 +123,14 @@ struct DashboardView: View {
     @ObservedObject private var vehicle = VehicleStore.shared
     @AppStorage("dashFont") private var dashFont = 0
     @State private var showScanner = false
+    @State private var navQuery = ""
+
+    static func placeLine(_ p: NavService.Place) -> String {
+        guard p.distance > 0 else { return p.address }
+        let d = p.distance >= 1000 ? String(format: "%.1f km", Double(p.distance) / 1000) : "\(p.distance) m"
+        return "\(d) · \(p.address)"
+    }
+    @ObservedObject private var nav = NavService.shared
 
     var body: some View {
         NavigationStack {
@@ -156,6 +164,43 @@ struct DashboardView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    GroupBox("导航") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            if nav.active {
+                                HStack {
+                                    Label(nav.status, systemImage: "location.north.line.fill").font(.subheadline)
+                                    Spacer()
+                                    Button("结束导航", role: .destructive) { nav.stop() }.buttonStyle(.bordered)
+                                }
+                            } else {
+                                HStack {
+                                    TextField("搜索目的地", text: $navQuery)
+                                        .textFieldStyle(.roundedBorder)
+                                        .submitLabel(.search)
+                                        .onSubmit { nav.searchPlaces(navQuery) }
+                                    Button { nav.searchPlaces(navQuery) } label: {
+                                        if nav.searching { ProgressView() } else { Image(systemName: "magnifyingglass") }
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                }
+                                if !nav.status.isEmpty { Text(nav.status).font(.caption).foregroundStyle(.secondary) }
+                                ForEach(nav.results.prefix(8)) { p in
+                                    HStack(alignment: .center, spacing: 8) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(p.name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                                            Text(Self.placeLine(p))
+                                                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                        }
+                                        Spacer()
+                                        Button("模拟") { nav.navigate(to: p, emulate: true) }.buttonStyle(.bordered).controlSize(.small)
+                                        Button("导航") { nav.navigate(to: p, emulate: false) }.buttonStyle(.borderedProminent).controlSize(.small)
+                                    }
+                                    Divider()
+                                }
+                            }
+                        }
                     }
 
                     GroupBox("仪表热点") {
@@ -229,6 +274,7 @@ struct DashboardView: View {
             .onAppear {
                 LocationService.shared.start()
                 NowPlaying.shared.start(log: model.log)
+                NavService.shared.log = model.log
                 if Demo.on {
                     VehicleStore.shared.override = .init(soc: 68, rangeKm: 30, charging: false, voltage: 82.8, updatedAt: Date())
                     DispatchQueue.main.asyncAfter(deadline: .now() + 15) { Demo.export(log: model.log) }

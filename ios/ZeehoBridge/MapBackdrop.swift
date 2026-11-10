@@ -54,19 +54,56 @@ final class MapBackdrop {
             conf.showsTraffic = false
             opts.preferredConfiguration = conf
             // 车在画面偏下方，前方路况看得更远
-            opts.camera = MKMapCamera(lookingAtCenter: Self.ahead(of: loc.coordinate, heading: heading, meters: 140),
+            // 国内 MapKit 用 GCJ-02 坐标，GPS 给的是 WGS-84，需要转换，否则会偏几百米
+            let center = Demo.on ? loc.coordinate : Geo.wgs84ToGcj02(loc.coordinate)
+            opts.camera = MKMapCamera(lookingAtCenter: Self.ahead(of: center, heading: heading, meters: 140),
                                       fromDistance: 650, pitch: 62, heading: heading)
             MKMapSnapshotter(options: opts).start(with: .global(qos: .utility)) { [weak self] snap, _ in
                 guard let self = self else { return }
-                let blurred = snap.flatMap { Self.blur($0.image) }
+                var shot = snap?.image
+                if let s = snap, let base = shot {
+                    let route = NavService.shared.snapshot().route
+                    if route.count > 1 { shot = Self.drawRoute(route, on: base, snapshot: s) }
+                }
+                let blurred = shot.flatMap { Self.blur($0) }
                 self.lock.lock()
-                if let img = snap?.image { self.image = img }
+                if let img = shot { self.image = img }
                 if let b = blurred { self.blurredImage = b }
                 self.lastCenter = loc.coordinate
                 self.lastHeading = heading
                 self.busy = false
                 self.lock.unlock()
             }
+        }
+    }
+
+    /// 把导航路线（GCJ-02）画进地图快照：青色发光线 + 白色细芯
+    private static func drawRoute(_ route: [CLLocationCoordinate2D], on base: UIImage,
+                                  snapshot: MKMapSnapshotter.Snapshot) -> UIImage {
+        let fmt = UIGraphicsImageRendererFormat()
+        fmt.scale = base.scale
+        let size = base.size
+        let limit = CGRect(origin: .zero, size: size).insetBy(dx: -size.width, dy: -size.height)
+        return UIGraphicsImageRenderer(size: size, format: fmt).image { c in
+            base.draw(at: .zero)
+            let path = UIBezierPath()
+            var drawing = false
+            for coord in route {
+                let p = snapshot.point(for: coord)
+                if limit.contains(p) {
+                    if drawing { path.addLine(to: p) } else { path.move(to: p); drawing = true }
+                } else {
+                    drawing = false
+                }
+            }
+            let cg = c.cgContext
+            cg.setLineCap(.round); cg.setLineJoin(.round)
+            let accent = UIColor(red: 98 / 255, green: 214 / 255, blue: 236 / 255, alpha: 1)
+            cg.saveGState()
+            cg.setShadow(offset: .zero, blur: 12, color: accent.withAlphaComponent(0.9).cgColor)
+            accent.setStroke(); path.lineWidth = 7; path.stroke()
+            cg.restoreGState()
+            UIColor(white: 1, alpha: 0.75).setStroke(); path.lineWidth = 2; path.stroke()
         }
     }
 

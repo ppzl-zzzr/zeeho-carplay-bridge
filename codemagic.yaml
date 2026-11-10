@@ -1,41 +1,64 @@
 workflows:
-  ios-unsigned:
-    name: iOS 未签名 IPA
+  ios-release:
+    name: 两个成品 IPA（编译 + 签名）
     instance_type: mac_mini_m2
-    max_build_duration: 30
+    max_build_duration: 45
     environment:
       xcode: latest
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
+      cocoapods: default
+      groups:
+        - amap
+        - signing
     scripts:
-      - name: 安装 XcodeGen
-        script: brew install xcodegen
-      - name: 生成 Xcode 工程
-        script: cd ios && xcodegen generate
-      - name: 编译仪表版和面板版（不签名）
+      - name: 生成工程 + 安装高德 SDK
+        script: |
+          brew install xcodegen
+          cd ios && xcodegen generate && pod install --repo-update
+      - name: 编译仪表版和面板版
         script: |
           cd ios
           set -o pipefail
           for T in ZeehoBridge ZeehoPanel; do
-            xcodebuild -project ZeehoBridge.xcodeproj -target $T \
-              -configuration Release -sdk iphoneos \
-              SYMROOT="$PWD/build" \
-              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-              build 2>&1 | tee build-$T.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+            xcodebuild -workspace ZeehoBridge.xcworkspace -scheme $T               -configuration Release -sdk iphoneos -destination 'generic/platform=iOS'               -derivedDataPath build               CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""               AMAP_IOS_KEY="$AMAP_IOS_KEY"               build 2>&1 | tee build-$T.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
           done
-      - name: 打包 IPA
+      - name: 签名并打包
         script: |
           cd ios
+          set -e
+          KC=build.keychain; KP=ci-$RANDOM
+          security create-keychain -p "$KP" $KC
+          security list-keychains -d user -s $KC $(security list-keychains -d user | sed 's/"//g')
+          security unlock-keychain -p "$KP" $KC
+          security set-keychain-settings -t 3600 $KC
+          echo "$SIGN_P12_B64" | base64 --decode > cert.p12
+          security import cert.p12 -k $KC -P "$SIGN_P12_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KP" $KC >/dev/null
+          ID=$(security find-identity -v -p codesigning $KC | head -1 | awk '{print $2}')
+          echo "signing identity: $ID"
+          echo "$PROFILE_DASH_B64" | base64 --decode > dash.mobileprovision
+          echo "$PROFILE_WILD_B64" | base64 --decode > wild.mobileprovision
+          sign() {
+            APP=$1; PROF=$2; BUNDLE=$3; OUT=$4
+            cp "$PROF" "$APP/embedded.mobileprovision"
+            security cms -D -i "$PROF" > prof.plist
+            /usr/libexec/PlistBuddy -x -c 'Print :Entitlements' prof.plist > ent.plist
+            /usr/libexec/PlistBuddy -c "Set :application-identifier 79ECZZR225.$BUNDLE" ent.plist
+            find "$APP" -name "*.framework" -o -name "*.dylib" | while read F; do codesign -f -s "$ID" "$F"; done
+            codesign -f -s "$ID" --entitlements ent.plist "$APP"
+            codesign -v "$APP" && echo "verified $APP"
+            rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/ && zip -qry "$OUT" Payload
+          }
+          P=build/Build/Products/Release-iphoneos
           for T in ZeehoBridge ZeehoPanel; do
-            rm -rf Payload && mkdir -p Payload
-            cp -R build/Release-iphoneos/$T.app Payload/
-            zip -qry $T-unsigned.ipa Payload
+            rm -rf Payload && mkdir Payload && cp -R $P/$T.app Payload/ && zip -qry $T-unsigned.ipa Payload
           done
+          sign $P/ZeehoBridge.app dash.mobileprovision com.zeeho.bridge ZeehoBridge-signed.ipa
+          sign $P/ZeehoPanel.app wild.mobileprovision com.zeeho.panel ZeehoPanel-signed.ipa
+          rm -f cert.p12
+          security delete-keychain $KC
     artifacts:
+      - ios/ZeehoBridge-signed.ipa
+      - ios/ZeehoPanel-signed.ipa
       - ios/ZeehoBridge-unsigned.ipa
       - ios/ZeehoPanel-unsigned.ipa
       - ios/build-*.log

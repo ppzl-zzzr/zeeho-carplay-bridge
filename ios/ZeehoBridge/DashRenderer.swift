@@ -110,15 +110,28 @@ final class DashRenderer {
         speedGauge(ctx, center: CGPoint(x: 165 * k, y: 226 * k), radius: 118 * k, k: k, font: F,
                    speed: LocationService.shared.speedKmh)
 
-        // 左下：本次行程
-        let t = LocationService.shared.trip
-        var tx = 40 * k
-        let by = h - 38 * k
-        for (label, value) in [("行程", String(format: "%.1f km", t.km)),
-                               ("时长", String(format: "%02d:%02d", Int(t.seconds) / 3600, Int(t.seconds) / 60 % 60)),
-                               ("最高", String(Int(t.maxKmh.rounded())))] {
-            tx += text(label, CGPoint(x: tx, y: by), .left, .systemFont(ofSize: 13 * k), text2) + 6 * k
-            tx += text(value, CGPoint(x: tx, y: by), .left, F.italic(18 * k), .white) + 22 * k
+        let nav = NavService.shared.snapshot()
+        if nav.active {
+            // 导航中：左下转向卡 + 右上到达信息
+            navCard(ctx, CGRect(x: 40 * k, y: h - 34 * k - 96 * k, width: 330 * k, height: 96 * k), nav, k: k, font: F)
+            let eta = Date().addingTimeInterval(TimeInterval(nav.remainTime))
+            let etaStr = "\(timeFmt.string(from: eta)) 到达"
+            let remain = nav.remainDistance >= 1000 ? String(format: "%.1f km", Double(nav.remainDistance) / 1000)
+                                                     : "\(nav.remainDistance) m"
+            text(etaStr, CGPoint(x: w - 40 * k, y: 70 * k), .right, F.italic(17 * k), .white)
+            text("剩余 \(remain) · \(max(nav.remainTime / 60, 1)) 分钟", CGPoint(x: w - 40 * k, y: 92 * k), .right,
+                 .systemFont(ofSize: 12 * k), text2)
+        } else {
+            // 左下：本次行程
+            let t = LocationService.shared.trip
+            var tx = 40 * k
+            let by = h - 38 * k
+            for (label, value) in [("行程", String(format: "%.1f km", t.km)),
+                                   ("时长", String(format: "%02d:%02d", Int(t.seconds) / 3600, Int(t.seconds) / 60 % 60)),
+                                   ("最高", String(Int(t.maxKmh.rounded())))] {
+                tx += text(label, CGPoint(x: tx, y: by), .left, .systemFont(ofSize: 13 * k), text2) + 6 * k
+                tx += text(value, CGPoint(x: tx, y: by), .left, F.italic(18 * k), .white) + 22 * k
+            }
         }
 
         // 右侧：大号媒体卡
@@ -252,6 +265,56 @@ final class DashRenderer {
     }
 
     // MARK: - 小部件
+
+    /// 导航转向卡：转向图标 + 距离 + 下一条路
+    private func navCard(_ ctx: CGContext, _ r: CGRect, _ nav: NavService.Snapshot, k: CGFloat, font F: DashFont) {
+        let path = UIBezierPath(roundedRect: r, cornerRadius: 20 * k)
+        ctx.saveGState()
+        ctx.setShadow(offset: CGSize(width: 0, height: 14 * k), blur: 40 * k, color: rgba(0, 0, 0, 0.5))
+        UIColor(red: 18 / 255, green: 26 / 255, blue: 40 / 255, alpha: 0.72).setFill(); path.fill()
+        ctx.restoreGState()
+        UIColor(white: 1, alpha: 0.08).setStroke(); path.lineWidth = 1 * k; path.stroke()
+
+        let ic = CGRect(x: r.minX + 16 * k, y: r.midY - 30 * k, width: 60 * k, height: 60 * k)
+        let icp = UIBezierPath(roundedRect: ic, cornerRadius: 16 * k)
+        ctx.saveGState(); icp.addClip()
+        linear(ctx, [UIColor(red: 0.44, green: 0.88, blue: 0.95, alpha: 1).cgColor,
+                     UIColor(red: 0.16, green: 0.65, blue: 0.79, alpha: 1).cgColor], [0, 1],
+               ic.origin, CGPoint(x: ic.maxX, y: ic.maxY))
+        ctx.restoreGState()
+        let cfg = UIImage.SymbolConfiguration(pointSize: 30 * k, weight: .heavy)
+        if let sym = UIImage(systemName: Self.turnSymbol(nav.icon), withConfiguration: cfg)?
+            .withTintColor(UIColor(red: 0.02, green: 0.13, blue: 0.16, alpha: 1), renderingMode: .alwaysOriginal) {
+            let s = sym.size
+            sym.draw(in: CGRect(x: ic.midX - s.width / 2, y: ic.midY - s.height / 2, width: s.width, height: s.height))
+        }
+
+        let tx = ic.maxX + 16 * k
+        let d = nav.segmentDistance
+        let num = d >= 1000 ? String(format: "%.1f", Double(d) / 1000) : "\(d)"
+        let nw = text(num, CGPoint(x: tx, y: r.midY - 14 * k), .left, F.display(34 * k), .white)
+        text(d >= 1000 ? "公里" : "米", CGPoint(x: tx + nw + 6 * k, y: r.midY - 10 * k), .left, .systemFont(ofSize: 14 * k), text2)
+        line(nav.nextRoad.isEmpty ? "沿当前道路行驶" : "进入 \(nav.nextRoad)",
+             CGRect(x: tx, y: r.midY + 10 * k, width: r.maxX - tx - 16 * k, height: 22 * k),
+             .systemFont(ofSize: 15 * k, weight: .medium), text2)
+    }
+
+    /// 高德转向图标编号 → SF Symbols
+    private static func turnSymbol(_ icon: Int) -> String {
+        switch icon {
+        case 2: return "arrow.turn.up.left"
+        case 3: return "arrow.turn.up.right"
+        case 4: return "arrow.up.left"
+        case 5: return "arrow.up.right"
+        case 6: return "arrow.down.left"
+        case 7: return "arrow.down.right"
+        case 8: return "arrow.uturn.down"
+        case 10: return "mappin.circle"
+        case 11, 12: return "arrow.triangle.turn.up.right.circle"
+        case 15: return "flag.checkered"
+        default: return "arrow.up"
+        }
+    }
 
     /// 270° 速度弧：底部开口，青→紫渐变 + 发光；满刻度 120 km/h
     private func speedGauge(_ ctx: CGContext, center c: CGPoint, radius r: CGFloat, k: CGFloat, font F: DashFont, speed: Double?) {

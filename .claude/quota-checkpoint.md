@@ -61,6 +61,12 @@
   - 下一步：等用户装机实测（MediaRemote 能否读到酷狗等、实车投屏）及界面反馈
 - [x] 用户已用爱思助手装上 App；反馈：手机号登录报“取图形验证码失败 Load failed（CORS）”、扫“我的”二维码只拿到账号 id 无车况 → 新增 FetchProxy（WKScriptMessageHandlerWithReply，JS 接管 fetch，*.zeehoev.com 走原生 URLSession，UA 缺省 okhttp/4.12.0），IPA 已重编（845KB，dist/）待用户重签实测
 - 用户说“没啥大问题，继续开发”；我开始做高德导航，用户叫停：免费版不能做摩托车/电动车专用导航，导航先不加（未改任何代码）。写 Codemagic 密钥变量被自动审核拦下（需用户本人操作）
+- 用户澄清：要做“常规（汽车）导航”，只是不做摩托车专用；排在自动连热点之后
+- [x] 苹果后台：显式 App ID com.zeeho.bridge（Hotspot + Access Wi-Fi Information）；描述文件 dist/signing/ZeehoBridge_Dev.mobileprovision（含两项权限，到 2027-11-10）—— 仪表版改用它签名
+- [x] DashWifi.swift：二维码解析（Carbit 链接 ssid/pwd、WIFI: 格式）、NEHotspotConfiguration 自动连接、QRScannerView；App 仪表页“仪表热点”分组 + 开始投屏先自动连
+- [x] 拆成两个 App（用户要求）：仪表版 ZeehoBridge（com.zeeho.bridge，自用，含高德）/ 面板版 ZeehoPanel（com.zeeho.panel，可分发，不含高德）；VehiclePanel 移到 ios/Shared/，Panel/PanelApp.swift；两个图标（docs/icons-preview.png）；codemagic ios-unsigned 同时出两个 IPA
+- 待办：面板版分发方式（Ad Hoc 需收集 UDID / TestFlight 需 App Store Connect 与审核；Unlocker 仓库无许可证，分发前建议征得作者同意）；然后做常规导航（仅仪表版，CocoaPods 只挂 ZeehoBridge target；高德 Key 用 App 内设置输入）
+- [x] 用户重新授权后，已把高德 Key 存为 Codemagic 加密变量 AMAP_IOS_KEY（group: amap）。导航实现时：codemagic.yaml 加 environment.groups: [amap]，xcodebuild 传 AMAP_IOS_KEY=$AMAP_IOS_KEY，仪表版 Info.plist 加 AMapApiKey: $(AMAP_IOS_KEY)
 - 后续可做：显式 App ID com.zeeho.bridge + Hotspot Configuration 能力，App 自动连仪表热点（通配描述文件不支持该能力）
 - [x] 签名材料（用户付费开发者账号，团队 79ECZZR225）：Apple Development 证书 VDK498DD86（到 2027-11-10）；P12 = dist/signing/ZeehoBridge-dev.p12（密码在同目录 p12-password.txt，3DES/SHA1 兼容爱思助手）；描述文件 dist/signing/ZeehoBridge_Dev_Wildcard.mobileprovision（通配 79ECZZR225.*，含设备 Joker 00008150-000130CA149A401C，到 2027-11-10）。私钥原件在 ~/.zeeho-bridge/signing/。用户用爱思助手自签
 

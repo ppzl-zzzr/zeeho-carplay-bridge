@@ -1,0 +1,16 @@
+platform :ios, '17.0'
+project 'ZeehoBridge.xcodeproj'
+
+# 只有仪表版用高德；面板版不含任何高德代码
+target 'ZeehoBridge' do
+  pod 'AMapNavi-NO-IDFA', '11.2.100'
+  pod 'AMapSearch-NO-IDFA', '9.8.1'
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |t|
+    t.build_configurations.each do |c|
+      c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+    end
+  end
+end
