@@ -18,6 +18,9 @@ targets:
     sources:
       - ZeehoBridge
       - Shared
+    configFiles:
+      Debug: Secrets.xcconfig
+      Release: Secrets.xcconfig
     entitlements:
       path: ZeehoBridge/ZeehoBridge.entitlements
       properties:

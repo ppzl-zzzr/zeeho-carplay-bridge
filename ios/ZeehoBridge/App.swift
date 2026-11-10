@@ -19,8 +19,7 @@ struct RootView: View {
         TabView {
             DashboardView()
                 .tabItem { Label("仪表", systemImage: "gauge.with.dots.needle.67percent") }
-            VehiclePanelView()
-                .ignoresSafeArea(edges: .bottom)
+            ZeehoAccountView()
                 .tabItem { Label("车辆", systemImage: "scooter") }
         }
     }
@@ -275,6 +274,8 @@ struct DashboardView: View {
                 LocationService.shared.start()
                 NowPlaying.shared.start(log: model.log)
                 NavService.shared.log = model.log
+                ZeehoAccount.shared.log = model.log
+                if ZeehoAccount.shared.isLoggedIn { Task { try? await ZeehoAccount.shared.refreshStatus() } }
                 if Demo.on {
                     VehicleStore.shared.override = .init(soc: 68, rangeKm: 30, charging: false, voltage: 82.8, updatedAt: Date())
                     DispatchQueue.main.asyncAfter(deadline: .now() + 15) { Demo.export(log: model.log) }

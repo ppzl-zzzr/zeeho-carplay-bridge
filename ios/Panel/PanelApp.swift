@@ -5,12 +5,8 @@ import SwiftUI
 struct ZeehoPanelApp: App {
     var body: some Scene {
         WindowGroup {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                VehiclePanelView()
-                    .ignoresSafeArea(edges: .bottom)
-            }
-            .preferredColorScheme(.dark)
+            ZeehoAccountView()
+                .preferredColorScheme(.dark)
         }
     }
 }

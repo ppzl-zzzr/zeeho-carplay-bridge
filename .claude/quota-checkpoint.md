@@ -67,6 +67,23 @@
 - [x] 拆成两个 App（用户要求）：仪表版 ZeehoBridge（com.zeeho.bridge，自用，含高德）/ 面板版 ZeehoPanel（com.zeeho.panel，可分发，不含高德）；VehiclePanel 移到 ios/Shared/，Panel/PanelApp.swift；两个图标（docs/icons-preview.png）；codemagic ios-unsigned 同时出两个 IPA
 - 待办：面板版分发方式（Ad Hoc 需收集 UDID / TestFlight 需 App Store Connect 与审核；Unlocker 仓库无许可证，分发前建议征得作者同意）；然后做常规导航（仅仪表版，CocoaPods 只挂 ZeehoBridge target；高德 Key 用 App 内设置输入）
 - [x] 用户重新授权后，已把高德 Key 存为 Codemagic 加密变量 AMAP_IOS_KEY（group: amap）。导航实现时：codemagic.yaml 加 environment.groups: [amap]，xcodebuild 传 AMAP_IOS_KEY=$AMAP_IOS_KEY，仪表版 Info.plist 加 AMapApiKey: $(AMAP_IOS_KEY)
+- 用户要求：只要两个“成品 IPA”，且云编译分钟有限 → 不再零碎编译，攒齐一次编
+- [x] 常规导航（仅仪表版）：ios/ZeehoBridge/Navigation.swift（NavService：AMapSearch POI 搜索、AMapNaviDriveManager 驾车算路/GPS 或模拟导航/内置 TTS、Geo.wgs84ToGcj02）；MapBackdrop 相机中心转 GCJ-02 + 路线画进快照；DashRenderer 导航卡（SF Symbols 转向图标）+ 右上 ETA；App 仪表页“导航”分组。高德接口名已对照 SDK 头文件核对（AMapNaviKit 11.2.100：arm64 + x86_64，无 arm64 模拟器切片 → 截图工作流需另行处理）
+- [x] ios/Podfile（AMapNavi-NO-IDFA 11.2.100、AMapSearch-NO-IDFA 9.8.1，只挂 ZeehoBridge）；project.yml 加 AMapApiKey: $(AMAP_IOS_KEY)、后台 audio
+- [x] Codemagic 加密变量 group signing：SIGN_P12_B64 / SIGN_P12_PWD / PROFILE_DASH_B64 / PROFILE_WILD_B64；工作流 ios-release（xcodegen + pod install + workspace 编译两个 target + codesign 签名 → *-signed.ipa / *-unsigned.ipa）；ios-unsigned 已删除，ios-screenshot 暂不可用（需 pods + x86_64）
+- [ ] ios-release 首次运行中（cmrun.py ios-release dist）
+
+## 原生化（用户选 B：还原签名做纯原生）— 进行中
+- [x] 签名算法完全还原并验证（Node↔Python 一致）。常量/算法/接口清单存 dist/recon/（gitignore）：
+  - BASE=https://tapi.zeehoev.com  APP_ID=S7qPWPU1  SECRET=c5e0da7f4da28df805694ec3dd1fc6792e9df99d
+  - 登录 Basic bWNrOjEyMzQ1Ng==  x-app-info=MOBILE|Android|17|ZEEHO_APP|3.0.5|...
+  - 固定头 Content-Type application/json;charset=UTF-8 / Accept-Language zh-CN / interfaceversion 2 / cfmoto-x-sign-type 0
+  - toQuery: 去空→key升序→k=v(不转义)→&连接；nonce(app)=str(ts)+rand16(0-9A-Za-z)
+  - cfmoto-x-param = appId=..&nonce=..&timestamp=..
+  - cfmoto-x-sign  = md5hex(sha1hex( query + body + param + SECRET ))  ← 两层
+  - 68 个接口已提取 dist/recon/endpoints.txt（登录 authCode/V2 + user/loginByPhone；车况 vehicleHomePageV2/{vin}；车控 vehicleInfo/controlV2；电池 batteryInfo/{vin} 等）
+- 下一步：写 Swift 原生 ZeehoAPI（CryptoKit Insecure.MD5/SHA1 精确复刻）+ 登录/车况/车控 UI，面板版改原生（去 WebView）。常量放 ZeehoSecrets.swift（gitignore，CI 用密钥变量注入）
+- 范围待定：原生 v1 先做 登录+车况+基础车控；壁纸/主题/OTA/社区/积分 等大面积功能后续迭代
 - 后续可做：显式 App ID com.zeeho.bridge + Hotspot Configuration 能力，App 自动连仪表热点（通配描述文件不支持该能力）
 - [x] 签名材料（用户付费开发者账号，团队 79ECZZR225）：Apple Development 证书 VDK498DD86（到 2027-11-10）；P12 = dist/signing/ZeehoBridge-dev.p12（密码在同目录 p12-password.txt，3DES/SHA1 兼容爱思助手）；描述文件 dist/signing/ZeehoBridge_Dev_Wildcard.mobileprovision（通配 79ECZZR225.*，含设备 Joker 00008150-000130CA149A401C，到 2027-11-10）。私钥原件在 ~/.zeeho-bridge/signing/。用户用爱思助手自签
 
@@ -84,3 +101,12 @@
 - Swift 代码未经编译器验证（本地无 Mac），首次 CI 很可能有小错误
 - 握手包名默认 com.cfmoto（极核官方 App）
 - Unlocker 网页由 App 远程加载，未打包进 App
+
+
+## 原生化已完成（登录+车况+基础车控）+ 打包（用户在 Mac 自编译，不用 CI）
+- 签名算法 100% 还原验证（dist/recon/）。appId=S7qPWPU1 secret=c5e0da7f...
+- 新文件：Shared/ZeehoSecrets.swift（gitignore，有 .example 模板）、Shared/ZeehoAPI.swift（CryptoKit MD5/SHA1 复刻签名 + ZeehoAccount 客户端：sendCode/login/loginWithToken/loadVehicles/refreshStatus/findVehicle/openSeat/setLock）、Shared/VehicleStore.swift（接口写 override→仪表读）、Shared/ZeehoAccountView.swift（原生登录+车况+车控 UI）
+- 删除 Shared/VehiclePanel.swift（WebView+FetchProxy），两个 App 车辆页改 ZeehoAccountView；project.yml 加 configFiles Secrets.xcconfig（仪表版注入高德 Key）
+- ios/BUILD-on-Mac.md 构建说明；打包 zip 给用户在 Mac 编译
+- 登录字段 phone/areaCode/authCode；车控 controlV2 command=lightAndWhistleHigh(寻车)/openSaddle(坐垫)/ON_AND_OFF+lockFlag(锁)——真机可能需按返回微调；开锁二次云解锁(network/unlock, 一次性AES)未做
+- 代码未经编译（本机无 Mac/Xcode）；用户 Mac 首编可能有少量 Swift 小错，按报错修

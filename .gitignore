@@ -14,3 +14,4 @@ ios/Payload/
 *.ipa
 ios/Secrets.xcconfig
 dist/
+ios/Shared/ZeehoSecrets.swift
