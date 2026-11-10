@@ -5,106 +5,107 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>极核仪表效果图</title>
 <style>
-  /* 设计基准：仪表 2048×960，这里按 1/2 = 1024×480 预览 */
-  :root { --accent: #5fd3e8; --text2: rgba(255,255,255,.62); --pill: rgba(255,255,255,.07); }
-  html, body { margin: 0; background: #04060a; color: #fff;
+  :root { --accent: #62d6ec; --t2: rgba(235,242,255,.6); }
+  html, body { margin: 0; background: #03050a; color: #fff;
     font-family: -apple-system, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif; }
-  body { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 24px 16px; }
+  body { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 22px 16px; }
   .label { color: #7d8797; font-size: 12px; }
-  .dash { position: relative; width: 1024px; height: 480px; overflow: hidden; border-radius: 22px; background: #0b1119;
-    box-shadow: 0 30px 80px rgba(0,0,0,.6); }
-  svg.map { position: absolute; inset: 0; }
-  .shade { position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(110% 120% at 62% 60%, transparent 40%, rgba(5,8,13,.9) 100%),
-                linear-gradient(90deg, rgba(6,9,14,.88) 0%, rgba(6,9,14,.35) 30%, transparent 46%),
-                linear-gradient(180deg, rgba(6,9,14,.75) 0%, transparent 22%, transparent 78%, rgba(6,9,14,.8) 100%); }
+  .dash { position: relative; width: 1024px; height: 480px; overflow: hidden; border-radius: 24px; background: #070b12; }
 
-  .top { position: absolute; left: 44px; right: 44px; top: 30px; display: flex; align-items: center; }
-  .brand { font-weight: 900; font-style: italic; letter-spacing: 3px; font-size: 22px; }
-  .model { margin-left: 14px; padding-left: 14px; border-left: 1px solid rgba(255,255,255,.25); font-size: 13px; letter-spacing: 3px; color: var(--text2); }
-  .clock { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: baseline; gap: 12px; }
-  .clock b { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .clock span { font-size: 15px; color: var(--text2); }
-  .status { margin-left: auto; display: flex; gap: 14px; align-items: center; font-size: 14px; color: var(--text2); }
-  .status .soc { color: #fff; font-weight: 600; } .status .soc i { color: #34d399; font-style: normal; }
-  .status .net { color: var(--accent); }
+  /* 3D 倾斜地图 */
+  .world { position: absolute; inset: 0; perspective: 700px; perspective-origin: 60% 0%; }
+  .plane { position: absolute; left: 50%; top: 50%; width: 1536px; height: 1280px; margin: -560px 0 0 -700px;
+    transform: rotateX(58deg) rotateZ(-14deg); transform-origin: 50% 60%; }
+  .tiles { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(6, 256px);
+    filter: invert(1) hue-rotate(185deg) brightness(.62) contrast(1.25) saturate(.55); }
+  .tiles img { width: 256px; height: 256px; display: block; }
+  .plane svg { position: absolute; inset: 0; }
+  .fog { position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, #070b12 0%, rgba(7,11,18,.92) 14%, rgba(7,11,18,.25) 42%, transparent 60%),
+                radial-gradient(90% 80% at 62% 85%, transparent 35%, rgba(4,7,12,.75) 100%),
+                linear-gradient(90deg, rgba(5,8,14,.92) 0%, rgba(5,8,14,.55) 26%, transparent 46%); }
 
-  .speed { position: absolute; left: 44px; top: 128px; }
-  .speed .n { display: flex; align-items: flex-end; gap: 10px; }
-  .speed b { font-size: 156px; line-height: .86; font-weight: 800; letter-spacing: -6px; font-variant-numeric: tabular-nums;
-    text-shadow: 0 6px 30px rgba(0,0,0,.6); }
-  .speed u { text-decoration: none; font-size: 30px; color: rgba(255,255,255,.75); margin-bottom: 6px; }
-  .speed .tag { margin-top: 18px; display: flex; align-items: center; gap: 10px; font-size: 15px; color: rgba(255,255,255,.75); }
-  .speed .tag::before { content: ""; width: 34px; height: 3px; border-radius: 3px; background: var(--accent); }
+  /* 车标 */
+  .puck { position: absolute; left: 610px; top: 330px; width: 54px; height: 54px; margin: -27px 0 0 -27px; }
+  .puck::before { content: ""; position: absolute; inset: -40px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(98,214,236,.35), transparent 65%); }
+  .puck svg { position: relative; filter: drop-shadow(0 8px 14px rgba(0,0,0,.7)); }
 
-  .trip { position: absolute; left: 44px; bottom: 40px; display: flex; gap: 26px; font-size: 16px; color: var(--text2); }
-  .trip b { color: #fff; font-weight: 600; margin-left: 6px; font-variant-numeric: tabular-nums; }
+  .top { position: absolute; left: 40px; right: 40px; top: 26px; display: flex; align-items: center; font-size: 14px; }
+  .brand { font-weight: 900; font-style: italic; letter-spacing: 3px; font-size: 20px; }
+  .model { margin-left: 12px; padding-left: 12px; border-left: 1px solid rgba(255,255,255,.22); letter-spacing: 3px; color: var(--t2); font-size: 12px; }
+  .clock { position: absolute; left: 50%; transform: translateX(-50%); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .clock span { font-size: 13px; color: var(--t2); margin-left: 10px; }
+  .stat { margin-left: auto; display: flex; gap: 16px; align-items: center; color: var(--t2); }
+  .bat { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 600; }
+  .bat i { width: 26px; height: 12px; border-radius: 3px; border: 1.5px solid rgba(255,255,255,.7); position: relative; }
+  .bat i::after { content: ""; position: absolute; left: 1.5px; top: 1.5px; bottom: 1.5px; width: 65%; border-radius: 1.5px; background: #3ee08f; }
 
-  /* 悬浮媒体：无卡片框，靠地图暗区承托 */
-  .media { position: absolute; left: 600px; top: 150px; width: 380px; }
-  .media .hd { font-size: 14px; color: rgba(255,255,255,.8); display: flex; gap: 8px; align-items: center; }
-  .media .hd i { color: var(--accent); font-style: normal; letter-spacing: -1px; }
-  .media .row { margin-top: 18px; display: flex; gap: 18px; align-items: center; }
-  .cover { width: 92px; height: 92px; border-radius: 16px; flex: none; position: relative; overflow: hidden;
-    background: linear-gradient(135deg, #2a3f52, #19323e); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
-  .cover::after { content: "♪"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 40px; color: var(--accent); }
-  .media .t { font-size: 30px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .media .a { font-size: 16px; color: var(--text2); margin-top: 6px; }
-  .media .prog { margin-top: 18px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text2); font-variant-numeric: tabular-nums; }
-  .media .bar { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.16); }
-  .media .bar i { display: block; height: 100%; width: 38%; border-radius: 3px; background: var(--accent); }
+  /* 车速：细字重 + 柔光 */
+  .speed { position: absolute; left: 40px; top: 96px; }
+  .speed b { display: block; font-size: 170px; line-height: .9; font-weight: 200; letter-spacing: -8px; font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, #fff 30%, #b9cbe0); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 10px 30px rgba(0,0,0,.65)); }
+  .speed .u { margin-top: 6px; font-size: 15px; letter-spacing: 4px; color: var(--t2); }
+  .modes { margin-top: 16px; display: flex; gap: 18px; font-size: 13px; letter-spacing: 1px; color: rgba(255,255,255,.35); }
+  .modes .on { color: var(--accent); text-shadow: 0 0 12px rgba(98,214,236,.6); }
 
-  .next { position: absolute; right: 44px; bottom: 34px; display: flex; align-items: center; gap: 12px;
-    padding: 10px 18px; border-radius: 99px; background: var(--pill); backdrop-filter: blur(14px); font-size: 15px; }
-  .next .arr { color: var(--accent); font-size: 20px; font-weight: 800; }
-  .next b { font-size: 18px; }
+  .glass { position: absolute; border-radius: 20px; background: linear-gradient(135deg, rgba(40,52,72,.42), rgba(16,22,34,.30));
+    backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(255,255,255,.04), 0 18px 50px rgba(0,0,0,.45); }
+
+  .nav { left: 40px; bottom: 34px; width: 300px; height: 86px; display: flex; align-items: center; gap: 16px; padding: 0 18px; box-sizing: border-box; }
+  .nav .ic { width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center;
+    background: linear-gradient(160deg, #6fe0f2, #2aa6c9); box-shadow: 0 6px 20px rgba(42,166,201,.45); }
+  .nav b { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; } .nav b small { font-size: 14px; color: var(--t2); font-weight: 400; margin-left: 2px; }
+  .nav .r { font-size: 13px; color: var(--t2); margin-top: 2px; }
+
+  .media { right: 40px; bottom: 34px; width: 330px; height: 96px; padding: 14px; box-sizing: border-box; display: flex; gap: 14px; overflow: hidden; }
+  .media::before { content: ""; position: absolute; inset: -40px; z-index: -1; opacity: .5; filter: blur(30px);
+    background: radial-gradient(circle at 20% 50%, #e0457b, transparent 55%), radial-gradient(circle at 75% 60%, #5b6cff, transparent 60%); }
+  .cover { width: 68px; height: 68px; border-radius: 12px; flex: none; background: linear-gradient(140deg, #ff8fb1, #7b5cff 55%, #2f7cf6);
+    box-shadow: 0 8px 20px rgba(0,0,0,.45); }
+  .m { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .m .s { font-size: 11px; color: var(--t2); } .m .t { font-size: 18px; font-weight: 600; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m .a { font-size: 12px; color: var(--t2); margin-top: 1px; }
+  .m .p { margin-top: 9px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.18); } .m .p i { display: block; width: 40%; height: 100%; border-radius: 3px; background: #fff; }
+
+  .eta { position: absolute; right: 40px; top: 74px; text-align: right; font-size: 13px; color: var(--t2); line-height: 1.6; }
+  .eta b { color: #fff; font-size: 16px; font-weight: 600; }
 </style>
 </head>
 <body>
-  <div class="label">极核仪表 · 2048×960 比例预览（按你上一版风格）</div>
+  <div class="label">极核仪表 · 高级车机风格 · 2048×960 比例（地图为高德瓦片暗色处理 + 3D 倾斜）</div>
   <div class="dash">
-    <svg class="map" viewBox="0 0 1024 480" preserveAspectRatio="none">
-      <rect width="1024" height="480" fill="#0c131c"/>
-      <g stroke="#1c2836" stroke-width="7" fill="none" stroke-linecap="round">
-        <path d="M-20 120 L 1040 70"/><path d="M-20 250 L 1040 205"/><path d="M-20 400 L 1040 330"/>
-        <path d="M180 -20 L 120 500"/><path d="M330 -20 L 290 500"/><path d="M480 -20 L 430 500"/>
-        <path d="M640 -20 L 600 500"/><path d="M800 -20 L 760 500"/><path d="M950 -20 L 900 500"/>
-      </g>
-      <g stroke="#26364a" stroke-width="13" fill="none" stroke-linecap="round" opacity=".9">
-        <path d="M-20 360 C 220 300, 480 290, 700 250 S 950 170, 1040 150"/>
-        <path d="M560 500 C 600 420, 650 380, 700 250"/>
-      </g>
-      <path d="M690 500 C 690 440, 670 400, 690 345 S 760 250, 820 230" stroke="#5fd3e8" stroke-width="6" fill="none"
-            stroke-linecap="round" opacity=".55"/>
-      <g fill="rgba(255,255,255,.4)" font-size="20" font-family="PingFang SC, Microsoft YaHei, sans-serif">
-        <text x="545" y="112">云水路</text><text x="450" y="415">环湖东路</text><text x="860" y="405" fill="rgba(95,211,232,.35)">湖畔公园</text>
-      </g>
-      <circle cx="690" cy="345" r="30" fill="rgba(10,16,24,.9)" stroke="#5fd3e8" stroke-width="2.5" opacity=".95"/>
-      <path d="M690 328 L 703 357 L 690 350 L 677 357 Z" fill="#fff"/>
-    </svg>
-    <div class="shade"></div>
+    <div class="world"><div class="plane">
+      <div class="tiles" id="tiles"></div>
+      <svg viewBox="0 0 1536 1280"><defs><filter id="g"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <path d="M760 1300 L 760 900 C 760 820, 790 760, 860 720 L 1060 600 C 1120 565, 1150 520, 1150 450 L 1150 80" stroke="#62d6ec" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)" opacity=".95"/>
+      </svg>
+    </div></div>
+    <div class="fog"></div>
+    <div class="puck"><svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="25" fill="rgba(8,14,22,.85)" stroke="#62d6ec" stroke-width="2"/><path d="M27 11 L39 39 L27 33 L15 39 Z" fill="#fff"/></svg></div>
 
-    <div class="top">
-      <span class="brand">ZEEHO</span><span class="model">AE6&nbsp;ULTRA</span>
-      <div class="clock"><b>00:48</b><span>11/10 星期二</span></div>
-      <div class="status"><span class="soc"><i>▮</i> 68% · 30 km</span><span>☁ 17°</span><span class="net">● 投屏中</span></div>
-    </div>
+    <div class="top"><span class="brand">ZEEHO</span><span class="model">AE6&nbsp;ULTRA</span>
+      <div class="clock">18:42<span>11/10 周二</span></div>
+      <div class="stat"><span>☁ 17°</span><span class="bat"><i></i>68%</span><span>30 km</span></div></div>
 
-    <div class="speed"><div class="n"><b>49</b><u>km/h</u></div><div class="tag">GPS 车速</div></div>
+    <div class="speed"><b>49</b><div class="u">KM/H</div><div class="modes"><span>ECO</span><span class="on">STREET</span><span>SPORT</span></div></div>
 
-    <div class="media">
-      <div class="hd"><i>ıllı</i>媒体 · 网易云音乐</div>
-      <div class="row"><div class="cover"></div>
-        <div style="min-width:0"><div class="t">至少相拥没错</div><div class="a">MC 张天赋</div></div></div>
-      <div class="prog"><span>1:12</span><div class="bar"><i></i></div><span>3:08</span></div>
-    </div>
+    <div class="eta"><b>18:57</b> 到达<br>剩余 4.2 km · 15 分钟</div>
 
-    <div class="trip"><span>行程<b>0.69 km</b></span><span>时长<b>00:51</b></span><span>均速<b>49 km/h</b></span><span>最高<b>69 km/h</b></span></div>
+    <div class="glass nav"><div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#06202a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20V12a4 4 0 0 1 4-4h8"/><path d="M15 4l4 4-4 4"/></svg></div>
+      <div><b>300<small>米</small></b><div class="r">右转进入 南山路</div></div></div>
 
-    <div class="next"><span class="arr">↱</span><b>300 米</b><span style="color:var(--text2)">右转进入 云水路</span></div>
+    <div class="glass media"><div class="cover"></div><div class="m"><div class="s">网易云音乐</div><div class="t">至少相拥没错</div><div class="a">MC 张天赋</div><div class="p"><i></i></div></div></div>
   </div>
-  <div class="label">投到仪表的画面只放信息，不放按钮；导航、音乐、设置等按钮留在手机 App 里操作</div>
+  <div class="label">仪表只显示信息；所有按钮在手机 App 里操作</div>
 <script>
+  // 杭州西湖附近，缩放 16（仅做效果预览）
+  var x0 = 54640, y0 = 26983, z = 16, html = '';
+  for (var y = 0; y < 5; y++) for (var x = 0; x < 6; x++)
+    html += '<img src="https://webrd0' + (1 + (x + y) % 4) + '.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=' + (x0 + x) + '&y=' + (y0 + y) + '&z=' + z + '">';
+  document.getElementById('tiles').innerHTML = html;
   function fit() { document.querySelector('.dash').style.zoom = Math.min(1, (innerWidth - 32) / 1024); }
   fit(); addEventListener('resize', fit);
 </script>

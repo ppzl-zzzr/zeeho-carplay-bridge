@@ -32,6 +32,9 @@
 
 - [x] 改用 Codemagic：codemagic.yaml 已推送（workflow ios-unsigned，push main 触发，产物 ios/ZeehoBridge-unsigned.ipa + ios/build.log）。等用户在 codemagic.io 用 GitHub 登录并添加仓库；要读编译日志需用户提供 Codemagic API token
 - [x] 设计风格以用户上一版为准（截图：横屏，ZEEHO 斜体 logo + 车型「AE6 ULTRA」，顶部居中时间日期，左侧超大车速+km/h+青色短线标签，左下行程/时长/均速/最高，右侧无框悬浮媒体（标题「媒体」+封面+大字歌名），地图标路名，中间圆形箭头定位标，强调色青 #5fd3e8）；docs/dash-mockup.html 已按此重做（2048×960 比例）。仪表画面只放信息，按钮留在手机
+- 用户反馈“仍不好看”：问题=地图太假太平、整体没质感；选定方向=高级车机感（特斯拉/小米 SU7 类）
+- [x] docs/dash-mockup.html 第三版：高德瓦片暗色处理（invert+hue-rotate）+ 3D 倾斜（rotateX 58°）、青色发光路线、圆形车标光晕、细字重渐变大车速、驾驶模式、ETA、玻璃导航卡、封面取色模糊媒体卡。等用户确认
+- App 实现方向：高德 iOS 地图 SDK（MAMapView 自定义暗色样式 + 3D 俯仰 cameraDegree）离屏截图作底图，或 MapKit 暗色 3D（无需 key）先顶上；悬浮层用 CoreGraphics 画
 - 下一步要把 Video.swift 的 DashRenderer 改成这个布局
 
 ## 下一步（从这里继续）
