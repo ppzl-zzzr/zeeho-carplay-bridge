@@ -17,8 +17,21 @@
 - [x] .github/workflows/ios.yml：macos-15 + XcodeGen + xcodebuild -target，产出未签名 IPA 和 build-log
 - [x] README 更新
 
+## 进展（13:50 后）
+- [x] GitHub 已登录（GCM，账号 ppzl-zzzr），私有仓库 ppzl-zzzr/zeeho-carplay-bridge 已推送 main
+- [!] 首次 Actions 运行 42763985676 = startup_failure（0 个 job，workflow 文件本身合法）→ 疑似私有仓库计费/账号限制，等用户决定改公开或去网页看原因
+- [x] 效果图 docs/dash-mockup.html（导航卡、悬浮车速、时间天气、电量卡、媒体卡；玻璃模糊+边缘羽化）
+- 用户新需求 v1.1：媒体卡片要显示任何 App 正在播放的内容（酷狗/网易云/抖音）。iOS 公开 API 做不到；计划试私有 MediaRemote（自签名可尝试，不保证）
+- CI 等待脚本：scratchpad 里的 waitci.sh（参数：commit sha、输出目录）
+
+- [x] 已恢复 Git 证书校验：删除 ~/.gitconfig 的 http.sslverify=false（备份在 scratchpad/gitconfig.bak），经 127.0.0.1:7890 代理访问 GitHub 正常
+- [!] 私有仓库再次 workflow_dispatch 仍 startup_failure（run 42764375580）；改公开被自动审核拦下，需用户明确同意
+- 用户告知：仪表分辨率 2048×960（以仪表握手上报为准；Baseline AutoLevel 可覆盖；CPU 绘制 2048×960 可能偏重，必要时内部降采样）
+
+- [x] 用户同意，仓库已改为公开；run 42764550144 失败，注解原文：“The job was not started because your account is locked due to a billing issue.” → GitHub 账号因计费问题被锁，公开/私有都跑不了，需用户去 https://github.com/settings/billing 处理；备选 Codemagic（用户自己注册，免费 macOS 分钟）
+
 ## 下一步（从这里继续）
-1. 用户建 GitHub 仓库并推送 → 看 Actions 结果；编译错误按 build-log 修
+1. 解决 Actions startup_failure → 看 Actions 结果；编译错误按 build-log 修
 2. Sideloadly 安装，实车测：CLIENT_INFO、画布尺寸、出画面、锁屏表现
 3. v1.1：实现 ZeehoShell 原生接口（store*/insets/setDark/setWidgetStats/GPS），接高德地图（AMap iOS SDK，需 key），媒体卡片（systemMusicPlayer）
 

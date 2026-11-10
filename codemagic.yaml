@@ -1,0 +1,36 @@
+workflows:
+  ios-unsigned:
+    name: iOS 未签名 IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: latest
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: 安装 XcodeGen
+        script: brew install xcodegen
+      - name: 生成 Xcode 工程
+        script: cd ios && xcodegen generate
+      - name: 编译（不签名）
+        script: |
+          cd ios
+          set -o pipefail
+          xcodebuild -project ZeehoBridge.xcodeproj -target ZeehoBridge \
+            -configuration Release -sdk iphoneos \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+      - name: 打包 IPA
+        script: |
+          cd ios
+          mkdir -p Payload
+          cp -R build/Release-iphoneos/ZeehoBridge.app Payload/
+          zip -qry ZeehoBridge-unsigned.ipa Payload
+    artifacts:
+      - ios/ZeehoBridge-unsigned.ipa
+      - ios/build.log
