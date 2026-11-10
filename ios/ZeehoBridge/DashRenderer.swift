@@ -148,7 +148,7 @@ final class DashRenderer {
             } else {
                 UIColor(red: 0.08, green: 0.1, blue: 0.16, alpha: 1).setFill(); g.fill(CGRect(x: 0, y: 0, width: W, height: H))
             }
-            linear(g, [tint.withAlphaComponent(0.42).cgColor, rgba(20, 26, 44, 0.6), rgba(12, 16, 28, 0.72)],
+            linear(g, [tint.withAlphaComponent(0.45).cgColor, rgba(18, 24, 40, 0.68), rgba(10, 14, 24, 0.8)],
                    [0, 0.55, 1], .zero, CGPoint(x: W, y: H))
             radial(g, [tint.withAlphaComponent(0.45).cgColor, tint.withAlphaComponent(0).cgColor], [0, 1],
                    CGPoint(x: W * 0.18, y: H * 0.16), W * 0.6)
@@ -231,16 +231,16 @@ final class DashRenderer {
         guard W > 0, H > 0, let g = CGContext(data: nil, width: W, height: H, bitsPerComponent: 8, bytesPerRow: 0,
                                               space: CGColorSpaceCreateDeviceGray(),
                                               bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
-        let edge = 26 * k
+        let edge = 40 * k
         g.setFillColor(gray: 0, alpha: 1); g.fill(CGRect(x: 0, y: 0, width: W, height: H))
         g.setFillColor(gray: 1, alpha: 1)
         g.addPath(UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: W, height: H).insetBy(dx: edge, dy: edge),
-                               cornerRadius: 24 * k).cgPath)
+                               cornerRadius: 30 * k).cgPath)
         g.fillPath()
         guard let hard = g.makeImage(), let f = CIFilter(name: "CIGaussianBlur") else { return nil }
         let input = CIImage(cgImage: hard)
-        f.setValue(input.clampedToExtent(), forKey: kCIInputImageKey)
-        f.setValue(edge * 0.55, forKey: kCIInputRadiusKey)
+        f.setValue(input, forKey: kCIInputImageKey)   // 不 clamp：四周按黑色淡出，边缘更柔
+        f.setValue(edge * 0.6, forKey: kCIInputRadiusKey)
         guard let out = f.outputImage?.cropped(to: input.extent),
               let img = MapBackdrop.ciContext.createCGImage(out, from: input.extent, format: .L8,
                                                             colorSpace: CGColorSpaceCreateDeviceGray()) else { return nil }

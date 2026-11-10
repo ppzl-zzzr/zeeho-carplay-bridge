@@ -49,7 +49,10 @@ final class MapBackdrop {
             opts.scale = 1
             opts.traitCollection = UITraitCollection(userInterfaceStyle: .dark)
             opts.pointOfInterestFilter = .excludingAll
-            opts.preferredConfiguration = MKStandardMapConfiguration(elevationStyle: .realistic, emphasisStyle: .muted)
+            let conf = MKStandardMapConfiguration(elevationStyle: .realistic, emphasisStyle: .muted)
+            conf.pointOfInterestFilter = .excludingAll   // 不要商家/酒店等 POI，画面更干净
+            conf.showsTraffic = false
+            opts.preferredConfiguration = conf
             // 车在画面偏下方，前方路况看得更远
             opts.camera = MKMapCamera(lookingAtCenter: Self.ahead(of: loc.coordinate, heading: heading, meters: 140),
                                       fromDistance: 650, pitch: 62, heading: heading)
@@ -79,7 +82,7 @@ final class MapBackdrop {
         let input = CIImage(cgImage: cg)
         guard let f = CIFilter(name: "CIGaussianBlur") else { return nil }
         f.setValue(input.clampedToExtent(), forKey: kCIInputImageKey)
-        f.setValue(14, forKey: kCIInputRadiusKey)
+        f.setValue(26, forKey: kCIInputRadiusKey)
         guard let out = f.outputImage?.cropped(to: input.extent),
               let res = ciContext.createCGImage(out, from: input.extent) else { return nil }
         return UIImage(cgImage: res)

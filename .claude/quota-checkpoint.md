@@ -50,7 +50,10 @@
 - [x] 首次 Codemagic 编译成功（746c16d），IPA 在 dist/ZeehoBridge-unsigned.ipa（dist/ 已 gitignore）
 - [x] mockup v4：三套字体 + 大号媒体卡/歌词
 - [x] 代码：Fonts/（Barlow/Saira/Rajdhani，OFL）+ UIAppFonts；NowPlaying.swift（MediaRemote dlopen + Apple Music 兜底 + CoverTint）；Lyrics.swift（LRCLIB → 网易云）；DashRenderer 重写（DashFont 可切换、行程栏、大号媒体卡：模糊地图+封面染色+羽化遮罩+歌词滚动）；MapBackdrop 增加模糊版；LocationService 增加 trip；App 字体切换
-- [ ] 第二次编译进行中（cmwait.py 在 ~/.zeeho-bridge，用法：python -I ~/.zeeho-bridge/cmwait.py <sha> dist）
+- [x] 第二次编译成功（179f037），IPA 717KB 含 6 个字体
+- [x] 演示模式 Demo.swift（-demo 启动参数：假车速/电量/播放/歌词，导出 2048×960 PNG）+ Codemagic 工作流 ios-screenshot（模拟器运行导出截图）
+  - 触发脚本：python -I ~/.zeeho-bridge/cmrun.py <workflowId> <输出目录>（ios-unsigned 出 IPA，ios-screenshot 出截图）；push 不会自动触发，需用 API
+  - 第一轮截图：渲染正常，但导出时地图未就绪（黑底）；手机预览里 MapKit 暗色 3D 地图已正常（模拟器英文路名）→ 已改为等地图就绪再导出，正在重跑
 
 ## 用户最新界面要求（15:03 恢复后编译跑通再做）
 1. 字体太丑要换：车速改 DIN Alternate Bold / DIN Condensed（iOS 自带），不用 ultraLight；中文 PingFang SC；先在 mockup 里出 2~3 个字体方案给用户选
