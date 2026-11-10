@@ -35,8 +35,18 @@ enum Demo {
         }
     }()
 
+    /// 等地图快照就绪（最多约 60 秒）再导出
+    static func export(log: @escaping (String) -> Void, waited: Int = 0) {
+        if MapBackdrop.shared.blurred == nil && waited < 60 {
+            _ = MapBackdrop.shared.current(for: CGSize(width: 2048, height: 960))
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { export(log: log, waited: waited + 1) }
+            return
+        }
+        exportNow(log: log, mapReady: MapBackdrop.shared.blurred != nil)
+    }
+
     /// 把三套字体的 2048×960 仪表画面写到 Documents/dash-*.png
-    static func export(log: @escaping (String) -> Void) {
+    private static func exportNow(log: @escaping (String) -> Void, mapReady: Bool) {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let renderer = DashRenderer()
         let saved = UserDefaults.standard.integer(forKey: "dashFont")
@@ -48,7 +58,7 @@ enum Demo {
             }
         }
         UserDefaults.standard.set(saved, forKey: "dashFont")
-        try? "done".write(to: dir.appendingPathComponent("export-done.txt"), atomically: true, encoding: .utf8)
+        try? "done map=\(mapReady)".write(to: dir.appendingPathComponent("export-done.txt"), atomically: true, encoding: .utf8)
         log("[演示] 已导出仪表截图到 \(dir.path)")
     }
 }

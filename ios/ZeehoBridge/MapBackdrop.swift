@@ -21,8 +21,9 @@ final class MapBackdrop {
     func current(for canvas: CGSize) -> UIImage? {
         lock.lock()
         // 快照按画布一半分辨率拍，省电；绘制时拉伸
-        let want = CGSize(width: max(canvas.width / 2, 320), height: max(canvas.height / 2, 160))
-        if want != size { size = want; lastShot = .distantPast }
+        // 只在画布变大时才换尺寸，避免预览和投屏两种尺寸来回切换导致反复重拍
+        let want = CGSize(width: max(canvas.width / 2, 512), height: max(canvas.height / 2, 240))
+        if want.width > size.width + 1 { size = want; lastShot = .distantPast }
         let img = image
         lock.unlock()
         refreshIfNeeded()

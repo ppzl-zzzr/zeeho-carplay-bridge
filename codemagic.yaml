@@ -71,6 +71,7 @@ workflows:
           mkdir -p shots
           cp "$C"/Documents/dash-*.png shots/ || true
           xcrun simctl io "$UDID" screenshot shots/phone.png || true
+          cat "$C/Documents/export-done.txt" || true
           ls -la shots
     artifacts:
       - ios/shots/*.png
