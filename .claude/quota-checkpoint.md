@@ -30,6 +30,10 @@
 
 - [x] 用户同意，仓库已改为公开；run 42764550144 失败，注解原文：“The job was not started because your account is locked due to a billing issue.” → GitHub 账号因计费问题被锁，公开/私有都跑不了，需用户去 https://github.com/settings/billing 处理；备选 Codemagic（用户自己注册，免费 macOS 分钟）
 
+- [x] 改用 Codemagic：codemagic.yaml 已推送（workflow ios-unsigned，push main 触发，产物 ios/ZeehoBridge-unsigned.ipa + ios/build.log）。等用户在 codemagic.io 用 GitHub 登录并添加仓库；要读编译日志需用户提供 Codemagic API token
+- [x] 设计风格以用户上一版为准（截图：横屏，ZEEHO 斜体 logo + 车型「AE6 ULTRA」，顶部居中时间日期，左侧超大车速+km/h+青色短线标签，左下行程/时长/均速/最高，右侧无框悬浮媒体（标题「媒体」+封面+大字歌名），地图标路名，中间圆形箭头定位标，强调色青 #5fd3e8）；docs/dash-mockup.html 已按此重做（2048×960 比例）。仪表画面只放信息，按钮留在手机
+- 下一步要把 Video.swift 的 DashRenderer 改成这个布局
+
 ## 下一步（从这里继续）
 1. 解决 Actions startup_failure → 看 Actions 结果；编译错误按 build-log 修
 2. Sideloadly 安装，实车测：CLIENT_INFO、画布尺寸、出画面、锁屏表现
