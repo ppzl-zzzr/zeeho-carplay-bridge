@@ -42,13 +42,50 @@ final class AppModel: ObservableObject {
         let f = DateFormatter(); f.dateFormat = "HH:mm:ss"; return f
     }()
 
+    // 仪表热点
+    @Published var dashSSID = DashWifi.saved?.ssid ?? ""
+    @Published var dashPwd = DashWifi.saved?.password ?? ""
+    @Published var autoJoin = UserDefaults.standard.object(forKey: "autoJoin") as? Bool ?? true
+
+    /// 扫到仪表二维码
+    func scanned(_ raw: String) {
+        log("[二维码] \(raw)")
+        if let c = DashWifi.parse(raw) {
+            dashSSID = c.ssid; dashPwd = c.password
+            DashWifi.saved = c
+            log("[二维码] 已保存仪表热点 \(c.ssid)")
+        } else {
+            log("[二维码] 没认出热点信息，请把这条日志发给开发者")
+        }
+    }
+
+    func saveWifi() {
+        let ssid = dashSSID.trimmingCharacters(in: .whitespaces)
+        DashWifi.saved = ssid.isEmpty ? nil : DashWifi.Credentials(ssid: ssid, password: dashPwd)
+        UserDefaults.standard.set(autoJoin, forKey: "autoJoin")
+    }
+
     func start() {
-        guard session == nil else { return }
+        guard session == nil, !running else { return }
         let d = UserDefaults.standard
         d.set(spoofPackage, forKey: "pkg"); d.set(manualIP, forKey: "ip"); d.set(rideMode, forKey: "rideMode")
+        saveWifi()
         UIApplication.shared.isIdleTimerDisabled = rideMode
         LocationService.shared.start()
+        running = true
+        if autoJoin, let c = DashWifi.saved {
+            status = "连接仪表热点…"
+            Task { [weak self] in
+                _ = await DashWifi.join(c) { self?.log($0) }
+                await MainActor.run { self?.startSession() }
+            }
+        } else {
+            startSession()
+        }
+    }
 
+    private func startSession() {
+        guard running, session == nil else { return }
         var cfg = DashConfig()
         cfg.spoofPackage = spoofPackage.trimmingCharacters(in: .whitespaces).isEmpty ? "com.cfmoto" : spoofPackage
         let s = DashSession(config: cfg) { [weak self] w, h in
@@ -58,7 +95,6 @@ final class AppModel: ObservableObject {
         s.onState = { [weak self] st in DispatchQueue.main.async { self?.status = st } }
         s.onCanvas = { [weak self] w, h in DispatchQueue.main.async { self?.canvas = CGSize(width: w, height: h) } }
         session = s
-        running = true
         log("开始投屏，握手包名 \(cfg.spoofPackage)")
         s.start(manualIP: manualIP)
     }
@@ -86,6 +122,7 @@ struct DashboardView: View {
     @EnvironmentObject var model: AppModel
     @ObservedObject private var vehicle = VehicleStore.shared
     @AppStorage("dashFont") private var dashFont = 0
+    @State private var showScanner = false
 
     var body: some View {
         NavigationStack {
@@ -119,6 +156,39 @@ struct DashboardView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    GroupBox("仪表热点") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Button {
+                                    showScanner = true
+                                } label: { Label("扫仪表二维码", systemImage: "qrcode.viewfinder") }
+                                .buttonStyle(.bordered)
+                                Spacer()
+                                Toggle("自动连接", isOn: $model.autoJoin).fixedSize()
+                            }
+                            TextField("热点名称（扫码自动填）", text: $model.dashSSID)
+                                .textFieldStyle(.roundedBorder)
+                                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            SecureField("热点密码", text: $model.dashPwd)
+                                .textFieldStyle(.roundedBorder)
+                            Text("开始投屏时，App 会先自动连上这个热点。仪表停在投屏页时显示的二维码里就有热点信息。")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .disabled(model.running)
+                    .sheet(isPresented: $showScanner) {
+                        NavigationStack {
+                            QRScannerView { code in
+                                model.scanned(code)
+                                showScanner = false
+                            }
+                            .ignoresSafeArea()
+                            .navigationTitle("扫描仪表二维码")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { showScanner = false } } }
+                        }
                     }
 
                     GroupBox("仪表字体") {
@@ -160,6 +230,7 @@ struct DashboardView: View {
                 LocationService.shared.start()
                 NowPlaying.shared.start(log: model.log)
                 if Demo.on {
+                    VehicleStore.shared.override = .init(soc: 68, rangeKm: 30, charging: false, voltage: 82.8, updatedAt: Date())
                     DispatchQueue.main.asyncAfter(deadline: .now() + 15) { Demo.export(log: model.log) }
                 }
             }

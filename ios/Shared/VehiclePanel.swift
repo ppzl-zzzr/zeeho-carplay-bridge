@@ -19,8 +19,11 @@ final class VehicleStore: ObservableObject {
     private var snap = Snapshot()
 
     /// 渲染线程用
+    /// 演示/测试时用固定数据覆盖（仪表版演示模式会设置）
+    var override: Snapshot?
+
     func snapshot() -> Snapshot {
-        if Demo.on { return Snapshot(soc: 68, rangeKm: 30, charging: false, voltage: 82.8, updatedAt: Date()) }
+        if let o = override { return o }
         lock.lock(); defer { lock.unlock() }; return snap
     }
 

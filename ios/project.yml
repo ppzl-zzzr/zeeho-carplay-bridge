@@ -6,25 +6,36 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    GENERATE_INFOPLIST_FILE: NO
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
 targets:
+  # 仪表版（自用）：仪表投屏 + 地图 + 媒体卡 + 自动连热点 + 车辆面板
   ZeehoBridge:
     type: application
     platform: iOS
     sources:
       - ZeehoBridge
+      - Shared
+    entitlements:
+      path: ZeehoBridge/ZeehoBridge.entitlements
+      properties:
+        com.apple.developer.networking.HotspotConfiguration: true
+        com.apple.developer.networking.wifi-info: true
     info:
       path: ZeehoBridge/Info.plist
       properties:
         CFBundleDisplayName: 极核仪表
-        CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "1"
+        CFBundleShortVersionString: "0.2.0"
+        CFBundleVersion: "2"
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIBackgroundModes:
           - location
         NSLocalNetworkUsageDescription: 需要访问本地网络，才能和极核仪表建立投屏连接。
-        NSLocationWhenInUseUsageDescription: 用 GPS 计算车速并显示在仪表上。
+        NSLocationWhenInUseUsageDescription: 用 GPS 计算车速并显示在仪表上，也用于识别当前连接的仪表热点。
         NSLocationAlwaysAndWhenInUseUsageDescription: 锁屏后继续用 GPS 计算车速，并让投屏在后台继续运行。
         NSCameraUsageDescription: 扫描仪表上的投屏二维码。
         NSMicrophoneUsageDescription: 录制自定义仪表音效。
@@ -42,7 +53,41 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zeeho.bridge
-        TARGETED_DEVICE_FAMILY: "1"
-        GENERATE_INFOPLIST_FILE: NO
+        MARKETING_VERSION: "0.2.0"
+        CURRENT_PROJECT_VERSION: "2"
+
+  # 面板版（可分发）：只有车辆面板，不含仪表、地图、高德
+  ZeehoPanel:
+    type: application
+    platform: iOS
+    sources:
+      - Panel
+      - Shared
+    info:
+      path: Panel/Info.plist
+      properties:
+        CFBundleDisplayName: 极核面板
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSCameraUsageDescription: 扫描仪表或账号二维码。
+        NSMicrophoneUsageDescription: 录制自定义仪表音效。
+        NSPhotoLibraryAddUsageDescription: 保存壁纸和截图到相册。
+        NSLocationWhenInUseUsageDescription: 在面板里显示你的位置和车速。
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zeeho.panel
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
+
+schemes:
+  ZeehoBridge:
+    build:
+      targets:
+        ZeehoBridge: all
+  ZeehoPanel:
+    build:
+      targets:
+        ZeehoPanel: all

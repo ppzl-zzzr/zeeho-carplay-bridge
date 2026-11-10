@@ -16,24 +16,29 @@ workflows:
         script: brew install xcodegen
       - name: 生成 Xcode 工程
         script: cd ios && xcodegen generate
-      - name: 编译（不签名）
+      - name: 编译仪表版和面板版（不签名）
         script: |
           cd ios
           set -o pipefail
-          xcodebuild -project ZeehoBridge.xcodeproj -target ZeehoBridge \
-            -configuration Release -sdk iphoneos \
-            SYMROOT="$PWD/build" \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+          for T in ZeehoBridge ZeehoPanel; do
+            xcodebuild -project ZeehoBridge.xcodeproj -target $T \
+              -configuration Release -sdk iphoneos \
+              SYMROOT="$PWD/build" \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+              build 2>&1 | tee build-$T.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+          done
       - name: 打包 IPA
         script: |
           cd ios
-          mkdir -p Payload
-          cp -R build/Release-iphoneos/ZeehoBridge.app Payload/
-          zip -qry ZeehoBridge-unsigned.ipa Payload
+          for T in ZeehoBridge ZeehoPanel; do
+            rm -rf Payload && mkdir -p Payload
+            cp -R build/Release-iphoneos/$T.app Payload/
+            zip -qry $T-unsigned.ipa Payload
+          done
     artifacts:
       - ios/ZeehoBridge-unsigned.ipa
-      - ios/build.log
+      - ios/ZeehoPanel-unsigned.ipa
+      - ios/build-*.log
 
   ios-screenshot:
     name: 模拟器截图（演示数据）

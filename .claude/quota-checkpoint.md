@@ -59,6 +59,9 @@
   - 用户选定字体 A Barlow（本来就是默认值 0，无需改代码）
   - 用户嫌“太素”→ docs/speed-styles.html 四种车速样式，用户选 C 速度弧线；已实现 speedGauge（270° 弧、青→紫渐变+发光、刻度、0/120、Barlow-ExtraBoldItalic 数字；电量/行程数字 Barlow-SemiBoldItalic），截图已发用户；IPA 已重编（838KB，dist/）
   - 下一步：等用户装机实测（MediaRemote 能否读到酷狗等、实车投屏）及界面反馈
+- [x] 用户已用爱思助手装上 App；反馈：手机号登录报“取图形验证码失败 Load failed（CORS）”、扫“我的”二维码只拿到账号 id 无车况 → 新增 FetchProxy（WKScriptMessageHandlerWithReply，JS 接管 fetch，*.zeehoev.com 走原生 URLSession，UA 缺省 okhttp/4.12.0），IPA 已重编（845KB，dist/）待用户重签实测
+- 用户说“没啥大问题，继续开发”；我开始做高德导航，用户叫停：免费版不能做摩托车/电动车专用导航，导航先不加（未改任何代码）。写 Codemagic 密钥变量被自动审核拦下（需用户本人操作）
+- 后续可做：显式 App ID com.zeeho.bridge + Hotspot Configuration 能力，App 自动连仪表热点（通配描述文件不支持该能力）
 - [x] 签名材料（用户付费开发者账号，团队 79ECZZR225）：Apple Development 证书 VDK498DD86（到 2027-11-10）；P12 = dist/signing/ZeehoBridge-dev.p12（密码在同目录 p12-password.txt，3DES/SHA1 兼容爱思助手）；描述文件 dist/signing/ZeehoBridge_Dev_Wildcard.mobileprovision（通配 79ECZZR225.*，含设备 Joker 00008150-000130CA149A401C，到 2027-11-10）。私钥原件在 ~/.zeeho-bridge/signing/。用户用爱思助手自签
 
 ## 用户最新界面要求（15:03 恢复后编译跑通再做）
