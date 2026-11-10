@@ -1,0 +1,14 @@
+.gradle/
+build/
+*/build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+
+# iOS（工程由 XcodeGen 在 CI 里生成）
+ios/build/
+ios/*.xcodeproj/
+ios/Payload/
+*.ipa

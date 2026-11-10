@@ -1,0 +1,38 @@
+name: ZeehoBridge
+options:
+  bundleIdPrefix: com.zeeho
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+targets:
+  ZeehoBridge:
+    type: application
+    platform: iOS
+    sources:
+      - ZeehoBridge
+    info:
+      path: ZeehoBridge/Info.plist
+      properties:
+        CFBundleDisplayName: 极核仪表
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIBackgroundModes:
+          - location
+        NSLocalNetworkUsageDescription: 需要访问本地网络，才能和极核仪表建立投屏连接。
+        NSLocationWhenInUseUsageDescription: 用 GPS 计算车速并显示在仪表上。
+        NSLocationAlwaysAndWhenInUseUsageDescription: 锁屏后继续用 GPS 计算车速，并让投屏在后台继续运行。
+        NSCameraUsageDescription: 扫描仪表上的投屏二维码。
+        NSMicrophoneUsageDescription: 录制自定义仪表音效。
+        NSPhotoLibraryAddUsageDescription: 保存壁纸和截图到相册。
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zeeho.bridge
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
