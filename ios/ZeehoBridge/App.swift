@@ -32,7 +32,7 @@ final class AppModel: ObservableObject {
     @Published var status = "未启动"
     @Published var logs: [String] = []
     @Published var running = false
-    @Published var canvas = CGSize(width: 800, height: 384)
+    @Published var canvas = CGSize(width: 1024, height: 480)
     @Published var spoofPackage = UserDefaults.standard.string(forKey: "pkg") ?? "com.cfmoto"
     @Published var manualIP = UserDefaults.standard.string(forKey: "ip") ?? ""
     @Published var rideMode = UserDefaults.standard.object(forKey: "rideMode") as? Bool ?? true
@@ -85,6 +85,7 @@ final class AppModel: ObservableObject {
 struct DashboardView: View {
     @EnvironmentObject var model: AppModel
     @ObservedObject private var vehicle = VehicleStore.shared
+    @AppStorage("dashFont") private var dashFont = 0
 
     var body: some View {
         NavigationStack {
@@ -120,6 +121,13 @@ struct DashboardView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
+                    GroupBox("仪表字体") {
+                        Picker("字体", selection: $dashFont) {
+                            ForEach(DashFont.allCases, id: \.rawValue) { Text($0.title).tag($0.rawValue) }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
                     GroupBox("投屏设置") {
                         VStack(alignment: .leading, spacing: 10) {
                             Toggle("骑行模式（屏幕常亮，推荐）", isOn: $model.rideMode)
@@ -148,6 +156,10 @@ struct DashboardView: View {
                 .padding()
             }
             .navigationTitle("极核仪表")
+            .onAppear {
+                LocationService.shared.start()
+                NowPlaying.shared.start(log: model.log)
+            }
         }
     }
 }

@@ -355,6 +355,15 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
 
     var lastLocation: CLLocation? { lock.lock(); defer { lock.unlock() }; return _last }
 
+    // 本次行程（从开始定位算起）
+    private var tripStart: Date?
+    private var tripMeters: Double = 0
+    private var tripMax: Double = 0
+    var trip: (km: Double, seconds: TimeInterval, maxKmh: Double) {
+        lock.lock(); defer { lock.unlock() }
+        return (tripMeters / 1000, tripStart.map { Date().timeIntervalSince($0) } ?? 0, tripMax)
+    }
+
     var speedKmh: Double? {
         lock.lock(); defer { lock.unlock() }
         return (speed >= 0 && Date().timeIntervalSince(at) < 5) ? speed : nil
@@ -378,6 +387,11 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         lock.lock()
         speed = l.speed >= 0 ? l.speed * 3.6 : -1
         at = Date()
+        if tripStart == nil { tripStart = Date() }
+        if let prev = _last, l.horizontalAccuracy >= 0, l.horizontalAccuracy < 30, l.speed > 1.5 {
+            tripMeters += l.distance(from: prev)
+        }
+        if speed > tripMax && l.horizontalAccuracy >= 0 && l.horizontalAccuracy < 30 { tripMax = speed }
         _last = l
         lock.unlock()
     }

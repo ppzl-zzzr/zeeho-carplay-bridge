@@ -29,6 +29,14 @@ targets:
         NSCameraUsageDescription: 扫描仪表上的投屏二维码。
         NSMicrophoneUsageDescription: 录制自定义仪表音效。
         NSPhotoLibraryAddUsageDescription: 保存壁纸和截图到相册。
+        NSAppleMusicUsageDescription: 读取 Apple Music 正在播放的歌曲，显示在仪表的媒体卡片上。
+        UIAppFonts:
+          - Barlow-Medium.ttf
+          - Barlow-SemiBold.ttf
+          - SairaSemiCondensed-Medium.ttf
+          - SairaSemiCondensed-SemiBold.ttf
+          - Rajdhani-Medium.ttf
+          - Rajdhani-SemiBold.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zeeho.bridge

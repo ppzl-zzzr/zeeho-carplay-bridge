@@ -1,4 +1,5 @@
 import Foundation
+import CoreImage
 import MapKit
 import UIKit
 
@@ -53,14 +54,41 @@ final class MapBackdrop {
                                       fromDistance: 650, pitch: 62, heading: heading)
             MKMapSnapshotter(options: opts).start(with: .global(qos: .utility)) { [weak self] snap, _ in
                 guard let self = self else { return }
+                let blurred = snap.flatMap { Self.blur($0.image) }
                 self.lock.lock()
                 if let img = snap?.image { self.image = img }
+                if let b = blurred { self.blurredImage = b }
                 self.lastCenter = loc.coordinate
                 self.lastHeading = heading
                 self.busy = false
                 self.lock.unlock()
             }
         }
+    }
+
+    private var blurredImage: UIImage?
+    /// 同一张地图的高斯模糊版（媒体卡的毛玻璃背景用）
+    var blurred: UIImage? { lock.lock(); defer { lock.unlock() }; return blurredImage }
+
+    /// 软件渲染，锁屏/后台也能用
+    static let ciContext = CIContext(options: [.useSoftwareRenderer: true])
+
+    private static func blur(_ img: UIImage) -> UIImage? {
+        guard let cg = img.cgImage else { return nil }
+        let input = CIImage(cgImage: cg)
+        guard let f = CIFilter(name: "CIGaussianBlur") else { return nil }
+        f.setValue(input.clampedToExtent(), forKey: kCIInputImageKey)
+        f.setValue(14, forKey: kCIInputRadiusKey)
+        guard let out = f.outputImage?.cropped(to: input.extent),
+              let res = ciContext.createCGImage(out, from: input.extent) else { return nil }
+        return UIImage(cgImage: res)
+    }
+
+    /// 地图按“铺满画布”方式绘制时所占的矩形
+    static func fillRect(image: CGSize, canvas: CGSize) -> CGRect {
+        let s = max(canvas.width / image.width, canvas.height / image.height)
+        let w = image.width * s, h = image.height * s
+        return CGRect(x: (canvas.width - w) / 2, y: (canvas.height - h) / 2, width: w, height: h)
     }
 
     private static func ahead(of c: CLLocationCoordinate2D, heading: CLLocationDirection, meters: Double) -> CLLocationCoordinate2D {
