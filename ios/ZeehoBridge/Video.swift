@@ -165,7 +165,7 @@ final class H264Encoder {
 
 // MARK: - 仪表画面渲染（CPU 绘制，锁屏时也能画）
 
-final class DashRenderer {
+final class LegacyDashRenderer {
     private let timeFmt: DateFormatter = {
         let f = DateFormatter(); f.locale = Locale(identifier: "zh_CN"); f.dateFormat = "HH:mm"; return f
     }()
@@ -351,6 +351,9 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     private let lock = NSLock()
     private var speed: Double = -1
     private var at = Date.distantPast
+    private var _last: CLLocation?
+
+    var lastLocation: CLLocation? { lock.lock(); defer { lock.unlock() }; return _last }
 
     var speedKmh: Double? {
         lock.lock(); defer { lock.unlock() }
@@ -375,6 +378,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         lock.lock()
         speed = l.speed >= 0 ? l.speed * 3.6 : -1
         at = Date()
+        _last = l
         lock.unlock()
     }
 }

@@ -12,3 +12,4 @@ ios/build/
 ios/*.xcodeproj/
 ios/Payload/
 *.ipa
+ios/Secrets.xcconfig

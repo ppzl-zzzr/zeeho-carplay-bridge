@@ -1,5 +1,7 @@
 # 任务检查点
-- 状态：进行中（iOS v1 代码已写完，等用户推到 GitHub 云编译）
+- 状态：暂停中（额度用尽，预约 2026-11-10 15:03 自动恢复）
+- 恢复后第一件事：用户新要求（完全授权）——在 Chrome 打开高德开放平台 https://console.amap.com/dev/key/app ，用户负责登录，我负责创建应用和 iOS Key（平台选 iOS，Bundle ID 填 com.zeeho.bridge），拿到 Key 写进 iOS 工程（不要提交到公开仓库：仓库已公开，Key 放 ios/Secrets.xcconfig 并加入 .gitignore，CI 用环境变量注入）。注意：上次 Chrome 扩展未连接，若仍连不上就提示用户安装/登录 Claude in Chrome 扩展
+- 其次：等用户 Codemagic 注册+API token；DashRenderer 按 mockup v3（高级车机感）重写；v1.1 媒体卡（尝试私有 MediaRemote）
 - 更新时间：2026-11-10 13:55
 - 会话 id：（未记录）
 - 预约恢复：无
