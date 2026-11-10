@@ -1,6 +1,13 @@
 # 任务检查点
-- 状态：暂停中（额度用尽，预约 2026-11-10 15:03 自动恢复）
-- 恢复后第一件事：用户新要求（完全授权）——在 Chrome 打开高德开放平台 https://console.amap.com/dev/key/app ，用户负责登录，我负责创建应用和 iOS Key（平台选 iOS，Bundle ID 填 com.zeeho.bridge），拿到 Key 写进 iOS 工程（不要提交到公开仓库：仓库已公开，Key 放 ios/Secrets.xcconfig 并加入 .gitignore，CI 用环境变量注入）。注意：上次 Chrome 扩展未连接，若仍连不上就提示用户安装/登录 Claude in Chrome 扩展
+- 状态：进行中（15:03 已恢复）
+- [x] 高德 iOS Key 已创建（应用 ZEEHO Dashboard，Key 名 ZeehoBridge-iOS，Bundle ID com.zeeho.bridge），保存在 ios/Secrets.xcconfig（已 gitignore，未提交）
+- [x] DashRenderer.swift 新版（高级车机风格）+ MapBackdrop.swift（MapKit 暗色 3D 快照铺底，无需 Key）；旧渲染器改名 LegacyDashRenderer；LocationService 增加 lastLocation；已推送 746c16d
+- quota-guard 停止线已按用户要求改为剩 2%（~/.claude/quota-guard/config.json）
+- 恢复后第一件事改为：等 Codemagic（用户注册+API token）→ 编译修错；然后接高德 SDK（Key 已有，CI 里用环境变量 AMAP_IOS_KEY 注入）、媒体卡私有 MediaRemote 试验
+- [x] Codemagic 应用已添加（appId 6af2b483be978b0d13be98c3）；API token 存在 ~/.zeeho-bridge/codemagic_token（appId 在 codemagic_app）；首次编译 buildId 6af2b4a00c41a3c63ce2bd04 已启动
+  - 查状态：curl -H "x-auth-token: $(cat ~/.zeeho-bridge/codemagic_token)" https://api.codemagic.io/builds/<buildId>（看 build.status 与 buildActions[].logUrl / artefacts）
+  - 下一步：读编译结果，按错误修 Swift 代码 → push 自动触发 → 拿 IPA 下载链接给用户
+- （已完成，保留记录）原第一件事：用户新要求（完全授权）——在 Chrome 打开高德开放平台 https://console.amap.com/dev/key/app ，用户负责登录，我负责创建应用和 iOS Key（平台选 iOS，Bundle ID 填 com.zeeho.bridge），拿到 Key 写进 iOS 工程（不要提交到公开仓库：仓库已公开，Key 放 ios/Secrets.xcconfig 并加入 .gitignore，CI 用环境变量注入）。注意：上次 Chrome 扩展未连接，若仍连不上就提示用户安装/登录 Claude in Chrome 扩展
 - 其次：等用户 Codemagic 注册+API token；DashRenderer 按 mockup v3（高级车机感）重写；v1.1 媒体卡（尝试私有 MediaRemote）
 - 更新时间：2026-11-10 13:55
 - 会话 id：（未记录）
@@ -38,6 +45,11 @@
 - [x] docs/dash-mockup.html 第三版：高德瓦片暗色处理（invert+hue-rotate）+ 3D 倾斜（rotateX 58°）、青色发光路线、圆形车标光晕、细字重渐变大车速、驾驶模式、ETA、玻璃导航卡、封面取色模糊媒体卡。等用户确认
 - App 实现方向：高德 iOS 地图 SDK（MAMapView 自定义暗色样式 + 3D 俯仰 cameraDegree）离屏截图作底图，或 MapKit 暗色 3D（无需 key）先顶上；悬浮层用 CoreGraphics 画
 - 下一步要把 Video.swift 的 DashRenderer 改成这个布局
+
+## 用户最新界面要求（15:03 恢复后编译跑通再做）
+1. 字体太丑要换：车速改 DIN Alternate Bold / DIN Condensed（iOS 自带），不用 ultraLight；中文 PingFang SC；先在 mockup 里出 2~3 个字体方案给用户选
+2. 骑行模式 ECO/STREET/SPORT 是效果图里的假数据，App 里已去掉；如要显示需找数据源（云端车况接口/仪表协议都未见当前档位字段），已如实告知用户
+3. 媒体卡：明显加大（约占右侧 40% 宽、60% 高）；背景用地图快照对应区域做 CIGaussianBlur 真模糊 + 半透明暗色；四边羽化渐隐（遮罩渐变）；封面取色；支持歌词滚动（LRCLIB 免费歌词库按歌名+歌手查，备用网易云搜索接口；按播放进度高亮当前行、上下两行渐隐）。播放信息来源依赖私有 MediaRemote 实验，Apple Music 可用 systemMusicPlayer
 
 ## 下一步（从这里继续）
 1. 解决 Actions startup_failure → 看 Actions 结果；编译错误按 build-log 修
