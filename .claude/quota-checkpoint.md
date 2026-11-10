@@ -56,7 +56,10 @@
   - 第一轮截图：渲染正常，但导出时地图未就绪（黑底）；手机预览里 MapKit 暗色 3D 地图已正常（模拟器英文路名）→ 已改为等地图就绪再导出，正在重跑
   - 第三轮截图（commit 隐藏 POI/加强模糊羽化/中文 locale）效果良好，已用 SendUserFile 发给用户三套字体截图（dist/shots/ios/shots/）；等用户选字体和反馈
   - 已用最新代码重编 IPA（724KB）→ dist/ZeehoBridge-unsigned.ipa
-  - 用户选定字体 A Barlow（本来就是默认值 0，无需改代码）；下一步等用户装机实测（MediaRemote 能否读到酷狗等、实车投屏）
+  - 用户选定字体 A Barlow（本来就是默认值 0，无需改代码）
+  - 用户嫌“太素”→ docs/speed-styles.html 四种车速样式，用户选 C 速度弧线；已实现 speedGauge（270° 弧、青→紫渐变+发光、刻度、0/120、Barlow-ExtraBoldItalic 数字；电量/行程数字 Barlow-SemiBoldItalic），截图已发用户；IPA 已重编（838KB，dist/）
+  - 下一步：等用户装机实测（MediaRemote 能否读到酷狗等、实车投屏）及界面反馈
+- [x] 签名材料（用户付费开发者账号，团队 79ECZZR225）：Apple Development 证书 VDK498DD86（到 2027-11-10）；P12 = dist/signing/ZeehoBridge-dev.p12（密码在同目录 p12-password.txt，3DES/SHA1 兼容爱思助手）；描述文件 dist/signing/ZeehoBridge_Dev_Wildcard.mobileprovision（通配 79ECZZR225.*，含设备 Joker 00008150-000130CA149A401C，到 2027-11-10）。私钥原件在 ~/.zeeho-bridge/signing/。用户用爱思助手自签
 
 ## 用户最新界面要求（15:03 恢复后编译跑通再做）
 1. 字体太丑要换：车速改 DIN Alternate Bold / DIN Condensed（iOS 自带），不用 ultraLight；中文 PingFang SC；先在 mockup 里出 2~3 个字体方案给用户选

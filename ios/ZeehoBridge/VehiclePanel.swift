@@ -73,27 +73,109 @@ final class VehicleStore: ObservableObject {
     }
 }
 
+// MARK: - 原生代发（替代 Android 外壳的“App 代发”）
+
+final class FetchProxy: NSObject, WKScriptMessageHandlerWithReply {
+    static let shared = FetchProxy()
+
+    private let session: URLSession = {
+        let c = URLSessionConfiguration.default
+        c.timeoutIntervalForRequest = 25
+        c.httpShouldSetCookies = true
+        c.waitsForConnectivity = false
+        return URLSession(configuration: c)
+    }()
+
+    func userContentController(_ ucc: WKUserContentController, didReceive message: WKScriptMessage,
+                               replyHandler: @escaping (Any?, String?) -> Void) {
+        guard let d = message.body as? [String: Any], let s = d["url"] as? String, let url = URL(string: s),
+              let host = url.host?.lowercased(), host == "zeehoev.com" || host.hasSuffix(".zeehoev.com"),
+              url.scheme?.lowercased() == "https" || url.scheme?.lowercased() == "http" else {
+            replyHandler(nil, "只允许代发极核接口")
+            return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = (d["method"] as? String)?.uppercased() ?? "GET"
+        for (k, v) in (d["headers"] as? [String: String]) ?? [:] { req.setValue(v, forHTTPHeaderField: k) }
+        if req.value(forHTTPHeaderField: "User-Agent") == nil { req.setValue("okhttp/4.12.0", forHTTPHeaderField: "User-Agent") }
+        if let b = d["body"] as? String, !b.isEmpty { req.httpBody = Data(base64Encoded: b) }
+
+        session.dataTask(with: req) { data, resp, err in
+            let reply: (Any?, String?)
+            if let err = err {
+                reply = (nil, err.localizedDescription)
+            } else {
+                let h = resp as? HTTPURLResponse
+                var headers: [String: String] = [:]
+                for (k, v) in h?.allHeaderFields ?? [:] {
+                    if let k = k as? String, let v = v as? String, !["content-encoding", "content-length"].contains(k.lowercased()) { headers[k] = v }
+                }
+                reply = (["status": h?.statusCode ?? 0, "headers": headers,
+                          "body": (data ?? Data()).base64EncodedString()], nil)
+            }
+            DispatchQueue.main.async { replyHandler(reply.0, reply.1) }
+        }.resume()
+    }
+}
+
 // MARK: - 嵌入的车辆面板（Zeeho Unlocker 网页）
 
 struct VehiclePanelView: UIViewRepresentable {
     static let home = URL(string: "https://lswlc33.github.io/zeeho-3d-models/")!
 
-    /// 只读监听：把面板访问极核接口拿到的响应文本转给原生，不改动请求本身。
+    /// 1. 原生代发：面板发往 *.zeehoev.com 的 fetch 交给 App 用原生网络发送（相当于 Android 外壳的“App 代发”），
+    ///    避开浏览器跨域限制；请求头、签名、请求体都原样转发，App 不改内容。
+    /// 2. 只读监听：把极核接口的响应文本转给原生，取出电量/续航给仪表界面。
     static let hookJS = """
     (function () {
       if (window.__zbHook) return; window.__zbHook = true;
+      var H = window.webkit && window.webkit.messageHandlers;
+      var NATIVE = /^https?:\\/\\/([a-z0-9-]+\\.)*zeehoev\\.com(?=[\\/:?#]|$)/i;
       function post(url, text) {
         try {
           if (!/zeehoev\\.com/.test(String(url))) return;
           if (typeof text !== 'string' || !text || text.length > 400000) return;
-          window.webkit.messageHandlers.zbVehicle.postMessage({ url: String(url), body: text });
+          H.zbVehicle.postMessage({ url: String(url), body: text });
         } catch (e) {}
+      }
+      function b64(buf) {
+        var b = new Uint8Array(buf), s = '', CH = 0x8000;
+        for (var i = 0; i < b.length; i += CH) s += String.fromCharCode.apply(null, b.subarray(i, i + CH));
+        return btoa(s);
+      }
+      function unb64(s) {
+        var bin = atob(s || ''), b = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
+        return b;
+      }
+      function viaNative(req) {
+        var m = req.method || 'GET';
+        var bodyP = (m === 'GET' || m === 'HEAD') ? Promise.resolve(null) : req.arrayBuffer();
+        return bodyP.then(function (buf) {
+          var headers = {};
+          req.headers.forEach(function (v, k) { headers[k] = v; });
+          return H.zbFetch.postMessage({ url: req.url, method: m, headers: headers, body: buf ? b64(buf) : '' });
+        }).then(function (r) {
+          var st = (r && r.status >= 200 && r.status <= 599) ? r.status : 502;
+          var nullBody = st === 204 || st === 205 || st === 304;
+          return new Response(nullBody ? null : unb64(r && r.body), { status: st, headers: (r && r.headers) || {} });
+        }, function (e) {
+          throw new TypeError('App 代发失败：' + (e && e.message ? e.message : e));
+        });
       }
       var of = window.fetch;
       if (of) {
         var wrapped = function (input, init) {
           var url = (input && input.url) || String(input);
-          return of.apply(this, arguments).then(function (r) {
+          var p;
+          if (H && H.zbFetch && NATIVE.test(url)) {
+            var req = null;
+            try { req = new Request(input, init); } catch (e) {}
+            p = req ? viaNative(req) : of.apply(this, arguments);
+          } else {
+            p = of.apply(this, arguments);
+          }
+          return p.then(function (r) {
             try { if (/zeehoev\\.com/.test(url)) r.clone().text().then(function (t) { post(url, t); }).catch(function () {}); } catch (e) {}
             return r;
           });
@@ -123,6 +205,7 @@ struct VehiclePanelView: UIViewRepresentable {
         let ucc = WKUserContentController()
         ucc.addUserScript(WKUserScript(source: Self.hookJS, injectionTime: .atDocumentStart, forMainFrameOnly: false))
         ucc.add(context.coordinator, name: "zbVehicle")
+        ucc.addScriptMessageHandler(FetchProxy.shared, contentWorld: .page, name: "zbFetch")
         cfg.userContentController = ucc
 
         let wv = WKWebView(frame: .zero, configuration: cfg)
